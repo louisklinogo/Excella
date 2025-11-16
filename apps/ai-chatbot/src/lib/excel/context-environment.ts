@@ -13,6 +13,7 @@ import type {
 import { DefaultSafetyConfigProvider } from "@excella/core/excel/safety-config";
 
 import { HiddenWorksheetMemoryRepository } from "./hidden-worksheet-memory-repository";
+import { OfficeJsDependencySummaryProvider } from "./dependency-summary-provider";
 import { OfficeJsExcelGateway } from "./officejs-excel-gateway";
 
 export interface ContextEnvironment {
@@ -27,6 +28,7 @@ export const createExcelContextEnvironment = (): ContextEnvironment => {
   const memoryRepository: AgentMemoryRepository =
     new HiddenWorksheetMemoryRepository();
   const safetyConfigProvider = new DefaultSafetyConfigProvider();
+  const dependencySummaryProvider = new OfficeJsDependencySummaryProvider();
 
   const metaProvider: MetaProvider = {
     async getMeta(): Promise<ContextMeta> {
@@ -62,6 +64,7 @@ export const createExcelContextEnvironment = (): ContextEnvironment => {
     memoryRepository,
     safetyConfigProvider,
     previewOptions,
+    dependencySummaryProvider,
   );
 
   const contextUpdater = new ContextUpdater(memoryRepository);

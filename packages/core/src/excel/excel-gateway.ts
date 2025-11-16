@@ -18,5 +18,6 @@ export interface ExcelGateway {
   getDataPreview(
     selection: SelectionContext | null,
     options: DataPreviewOptions,
+    includeFormulas?: boolean,
   ): Promise<DataPreview>;
 }

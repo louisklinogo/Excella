@@ -67,6 +67,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
   async getDataPreview(
     selection: SelectionContext | null,
     options: DataPreviewOptions,
+    includeFormulas?: boolean,
   ): Promise<DataPreview> {
     return Excel.run(async (context) => {
       const { primaryRange, secondaryRanges } = resolvePreviewRanges(
@@ -80,7 +81,11 @@ export class OfficeJsExcelGateway implements ExcelGateway {
       );
 
       for (const range of rangesToLoad) {
-        range.load(["values", "address", "rowCount", "columnCount"]);
+        const properties = ["values", "address", "rowCount", "columnCount"];
+			if (includeFormulas) {
+				properties.push("formulas");
+			}
+        range.load(properties);
       }
 
       await context.sync();
@@ -93,6 +98,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
               options.maxPrimaryRows,
               options.maxPrimaryColumns,
               true,
+              includeFormulas === true,
             );
 
       const secondarySamples: RangeSample[] = secondaryRanges.map((range) =>
@@ -101,6 +107,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
           options.maxSecondaryRows,
           options.maxSecondaryColumns,
           false,
+          includeFormulas === true,
         ),
       );
 
@@ -266,38 +273,78 @@ const resolvePreviewRanges = (
 };
 
 const toRangeSample = (
-  range: Excel.Range,
-  maxRows: number,
-  maxColumns: number,
-  hasHeaders: boolean,
+	range: Excel.Range,
+	maxRows: number,
+	maxColumns: number,
+	hasHeaders: boolean,
+	includeFormulas: boolean,
 ): RangeSample => {
-  const fullRowCount = range.rowCount;
-  const fullColumnCount = range.columnCount;
-  const rowLimit = Math.min(fullRowCount, maxRows);
-  const columnLimit = Math.min(fullColumnCount, maxColumns);
+	const fullRowCount = range.rowCount;
+	const fullColumnCount = range.columnCount;
+	const rowLimit = Math.min(fullRowCount, maxRows);
+	const columnLimit = Math.min(fullColumnCount, maxColumns);
 
-  const limitedRange = range.getCell(0, 0).getResizedRange(
-    rowLimit - 1,
-    columnLimit - 1,
-  );
+	const allValues = range.values as unknown[][];
+	const limitedValues = allValues
+		.slice(0, rowLimit)
+		.map((row) => row.slice(0, columnLimit));
 
-  const values = limitedRange.values as unknown[][];
+	const allFormulas = includeFormulas
+		? (range.formulas as unknown[][] | undefined)
+		: undefined;
+	const limitedFormulas = allFormulas
+		?.slice(0, rowLimit)
+		.map((row) => row.slice(0, columnLimit));
 
-  const headers = hasHeaders && values.length > 0
-    ? (values[0] as (string | null)[])
-    : undefined;
+	const headers = hasHeaders && limitedValues.length > 0
+		? (limitedValues[0] as (string | null)[])
+		: undefined;
 
-  const rows = hasHeaders ? values.slice(1) : values;
+	const dataValues = hasHeaders
+		? limitedValues.slice(1)
+		: limitedValues;
+	const dataFormulas = hasHeaders
+		? limitedFormulas?.slice(1)
+		: limitedFormulas;
 
-  return {
-    worksheetName: limitedRange.worksheet.name,
-    address: limitedRange.address,
-    rowCount: rowLimit,
-    columnCount: columnLimit,
-    hasHeaders,
-    headers,
-    rows: rows as RangeSample["rows"],
-    truncated:
-      fullRowCount > rowLimit || fullColumnCount > columnLimit,
-  } satisfies RangeSample;
+	const kinds = dataValues.map((row, rowIndex) =>
+		row.map((value, columnIndex) => {
+			const formulaRow = dataFormulas?.[rowIndex];
+			const formula = formulaRow?.[columnIndex];
+
+			if (typeof formula === "string" && formula.trim() !== "") {
+				return "formula";
+			}
+
+			if (value === null || value === undefined || value === "") {
+				return "empty";
+			}
+
+			if (typeof value === "string" && value.startsWith("#")) {
+				return "error";
+			}
+
+			return "value";
+		}),
+	);
+
+	const worksheetName = range.worksheet.name;
+	const address = range.address;
+
+	return {
+		worksheetName,
+		address,
+		rowCount: rowLimit,
+		columnCount: columnLimit,
+		hasHeaders,
+		headers,
+		rows: dataValues as RangeSample["rows"],
+		truncated:
+			fullRowCount > rowLimit || fullColumnCount > columnLimit,
+		formulas:
+			includeFormulas && dataFormulas
+				? (dataFormulas as (string | null)[][])
+				: undefined,
+		kinds,
+	} satisfies RangeSample;
 };

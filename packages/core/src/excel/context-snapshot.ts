@@ -5,6 +5,7 @@ export interface ExcelContextSnapshot {
   dataPreview: DataPreview;
   memory: AgentMemory;
   safety: SafetyContext;
+  dependencySummaries?: DependencySummary[];
 }
 
 export interface ContextMeta {
@@ -83,9 +84,13 @@ export interface RangeSample {
   headers?: (string | null)[];
   rows: CellValue[][];
   truncated: boolean;
+  formulas?: (string | null)[][];
+  kinds?: CellKind[][];
 }
 
 export type CellValue = string | number | boolean | null;
+
+export type CellKind = "empty" | "value" | "formula" | "error";
 
 export interface AgentMemory {
   recentActions: AgentActionLogEntry[];
@@ -178,4 +183,15 @@ export interface RiskAssessment {
 export interface SafetyFlags {
   readOnlyMode: boolean;
   experimentalFeaturesEnabled: boolean;
+}
+
+export interface DependencySummary {
+	source: DependencyNodeRef;
+	dependsOn: DependencyNodeRef[];
+}
+
+export interface DependencyNodeRef {
+	kind: "table" | "namedRange";
+	name: string;
+	worksheetName?: string;
 }

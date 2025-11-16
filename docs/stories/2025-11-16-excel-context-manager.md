@@ -57,13 +57,26 @@ Added application-layer abstractions for building and updating snapshots:
     - Respects `SafetyFlags.readOnlyMode`.
     - Uses `context.safety.currentRisk` (or a low-risk default) when returning `PlanValidationResult`.
 
-### 4. Persistence schema validation
+### 4. Formula samples and dependency awareness
+
+- Extended `RangeSample` in `packages/core/src/excel/context-snapshot.ts` with:
+  - Optional `formulas?: (string | null)[][]` for sampled formula text.
+  - Optional `kinds?: CellKind[][]` to classify cells as `"empty" | "value" | "formula" | "error"`.
+- Added `dependencySummaries?: DependencySummary[]` and `DependencyNodeRef` to `ExcelContextSnapshot` to express object-level dependencies between tables and named ranges.
+- Introduced `ContextDetailOptions` and `DependencySummaryProvider` in `packages/core/src/excel/context-manager.ts` so callers can opt into formula samples and dependency summaries when building a snapshot.
+- Updated `ExcelGateway.getDataPreview` and `apps/ai-chatbot/src/lib/excel/officejs-excel-gateway.ts` to optionally load `range.formulas` and compute `CellKind`, respecting the `includeFormulas` flag.
+- Implemented `OfficeJsDependencySummaryProvider` in `apps/ai-chatbot/src/lib/excel/dependency-summary-provider.ts` to:
+  - Sample formulas from table data ranges and named range formulas.
+  - Infer dependencies via simple heuristics (structured references `TableName[` and named range name matches).
+  - Populate `dependencySummaries` when `includeDependencySummaries` is requested.
+
+### 5. Persistence schema validation
 
 - `packages/core/src/excel/schemas.ts`
   - `AgentMemorySchema` and related zod schemas for `AgentActionLogEntry`, `AgentErrorLogEntry`, and `AgentNote`.
   - Used to validate persisted memory before use.
 
-### 5. Package exports
+### 6. Package exports
 
 - Updated `packages/core/package.json` to export new Excel-related modules under `@excella/core/excel/*` so they can be consumed by apps and agents without barrel files.
 
@@ -86,14 +99,36 @@ In `apps/ai-chatbot`, added host-specific wiring that depends on Office.js and `
     - `OfficeJsExcelGateway` as the `ExcelGateway`.
     - `HiddenWorksheetMemoryRepository` as the `AgentMemoryRepository`.
     - `DefaultSafetyConfigProvider` from `@excella/core`.
+    - `OfficeJsDependencySummaryProvider` for optional dependency summaries.
     - Inline `MetaProvider` that generates `snapshotId` and a simple `workbookId` placeholder.
     - `DefaultContextManager` and `ContextUpdater` from `@excella/core`.
   - Provides a single entrypoint for tools/agents to obtain a snapshot and update memory.
+
+### Excel dependency graph API
+
+- Added `packages/core/src/excel/dependency-gateway.ts` defining:
+  - `DependencyGraphNode`, `DependencyEdge`, and `SelectionDependencyGraph`.
+  - `DependencyGateway` interface for selection-level dependency graphs.
+- Implemented `OfficeJsDependencyGateway` in `apps/ai-chatbot/src/lib/excel/dependency-gateway.ts` that:
+  - Uses `range.getDirectPrecedents()` to collect direct precedent ranges for the current selection.
+  - Builds a `SelectionDependencyGraph` with a hard `maxNodes` cap and a `truncated` flag.
 
 ## Validation
 
 - Ran `npx tsc --noEmit` from the project root after the new modules were added and after extending `AgentActionKind`.
 - Type checking passes successfully; no new type errors were introduced.
+
+## Logging and telemetry foundation
+
+- Introduced `@excella/logging` as a new workspace package under `packages/logging`:
+  - Provides a `Logger` interface with `debug/info/warn/error(event, fields)` and structured `LogEntry` (`level`, `event`, `timestamp`, `bindings`, `data`).
+  - Centralized `LoggerConfig` loaded from environment with support for redaction, sampling, truncation, buffering, and correlation headers.
+  - Console and pino transports for JSON/pretty output.
+  - AsyncLocalStorage-based request context and Next.js adapter (`seedRequestContext`, `getRequestId`).
+  - Zod-based `EventSchemas` for core telemetry events like `"tool.call"`, `"tool.result"`, `"ai.request.start"`, `"ai.request.done"`, `"excel.batch"`, and `"excel.batch.done"`.
+- Wired telemetry into the chat API route at `apps/ai-chatbot/src/app/api/chat/route.ts`:
+  - Logs `"ai.request.start"` with provider/model when a chat request begins.
+  - Logs `"ai.request.done"` with provider/model, duration, and status (`"ok"`/`"error"`) for each request.
 
 ## Notes
 

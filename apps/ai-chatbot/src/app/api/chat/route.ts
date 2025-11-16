@@ -1,5 +1,6 @@
 import { createModel, type ModelFactoryOptions } from "@excella/core";
 import type { ModelProvider } from "@excella/core/model-config";
+import { logger, startTimer } from "@excella/logging";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 type ChatRequestExtras = {
@@ -42,10 +43,41 @@ export async function POST(request: Request): Promise<Response> {
   const extras: ChatRequestExtras = body ?? data ?? {};
   const modelOptions = parseModelSelection(extras.model);
 
-  const result = await streamText({
-    model: createModel(modelOptions),
-    messages: convertToModelMessages(messages),
+  const timer = startTimer();
+  const provider = modelOptions.provider ?? "unknown";
+  const modelId = modelOptions.modelId ?? "default";
+
+  logger.info("ai.request.start", {
+    provider,
+    model: modelId,
   });
 
-  return result.toUIMessageStreamResponse();
+  try {
+    const result = await streamText({
+      model: createModel(modelOptions),
+      messages: convertToModelMessages(messages),
+    });
+
+    const durationMs = Date.now() - timer.start;
+
+    logger.info("ai.request.done", {
+      provider,
+      model: modelId,
+      durationMs,
+      status: "ok",
+    });
+
+    return result.toUIMessageStreamResponse();
+  } catch (error) {
+    const durationMs = Date.now() - timer.start;
+
+    logger.error("ai.request.done", {
+      provider,
+      model: modelId,
+      durationMs,
+      status: "error",
+      error,
+    });
+    throw error;
+  }
 }
