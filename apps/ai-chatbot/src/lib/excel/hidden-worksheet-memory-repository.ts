@@ -1,17 +1,15 @@
-import type { AgentMemory } from "@excella/core/excel/context-snapshot";
 import type { AgentMemoryRepository } from "@excella/core/excel/context-manager";
+import type { AgentMemory } from "@excella/core/excel/context-snapshot";
 import { AgentMemorySchema } from "@excella/core/excel/schemas";
 
 const SHEET_NAME = "_AI_CONTEXT";
 const CELL_ADDRESS = "A1";
 
-export class HiddenWorksheetMemoryRepository
-  implements AgentMemoryRepository
-{
+export class HiddenWorksheetMemoryRepository implements AgentMemoryRepository {
   async load(_workbookId: string): Promise<AgentMemory> {
     return Excel.run(async (context) => {
       const workbook = context.workbook;
-      let sheet = workbook.worksheets.getItemOrNullObject(SHEET_NAME);
+      const sheet = workbook.worksheets.getItemOrNullObject(SHEET_NAME);
       sheet.load(["name", "visibility"]);
       await context.sync();
 

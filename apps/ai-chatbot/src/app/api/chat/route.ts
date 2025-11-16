@@ -14,9 +14,8 @@ type ChatRequestBody = {
   data?: ChatRequestExtras;
 };
 
-const isSupportedProvider = (provider: string): provider is ModelProvider => {
-  return provider === "google" || provider === "anthropic" || provider === "openai";
-};
+const isSupportedProvider = (provider: string): provider is ModelProvider =>
+  provider === "google" || provider === "anthropic" || provider === "openai";
 
 const parseModelSelection = (value?: string): ModelFactoryOptions => {
   if (!value) {
@@ -26,7 +25,7 @@ const parseModelSelection = (value?: string): ModelFactoryOptions => {
   const [rawProvider, ...rest] = value.split("/");
   const modelId = rest.join("/");
 
-  if (!rawProvider || !modelId) {
+  if (!(rawProvider && modelId)) {
     return {};
   }
 
@@ -37,7 +36,7 @@ const parseModelSelection = (value?: string): ModelFactoryOptions => {
   return { provider: rawProvider, modelId } satisfies ModelFactoryOptions;
 };
 
-export async function POST(request: Request): Promise<Response> {
+export function POST(request: Request): Promise<Response> {
   return seedRequestContext(request, async ({ logger: requestLogger }) => {
     const { messages, body, data } = (await request.json()) as ChatRequestBody;
 

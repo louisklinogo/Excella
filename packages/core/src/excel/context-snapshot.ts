@@ -109,38 +109,38 @@ export interface AgentActionLogEntry {
 }
 
 export type AgentActionKind =
-	// Core data writes
-	| "write-values"
-	| "fill-formulas"
-	| "transform-data"
-	// Tables and ranges
-	| "insert-table"
-	| "update-table-structure"
-	| "sort-range"
-	| "filter-range"
-	// Formatting
-	| "formatting-change"
-	// Rows and columns
-	| "insert-rows"
-	| "insert-columns"
-	| "delete-rows"
-	| "delete-columns"
-	// Sheets
-	| "create-sheet"
-	| "rename-sheet"
-	| "delete-sheet"
-	| "move-sheet"
-	// Named ranges
-	| "create-named-range"
-	| "update-named-range"
-	// Validation and comments
-	| "set-data-validation"
-	| "remove-data-validation"
-	| "add-comment"
-	| "edit-comment"
-	| "remove-comment"
-	// Fallback
-	| "other";
+  // Core data writes
+  | "write-values"
+  | "fill-formulas"
+  | "transform-data"
+  // Tables and ranges
+  | "insert-table"
+  | "update-table-structure"
+  | "sort-range"
+  | "filter-range"
+  // Formatting
+  | "formatting-change"
+  // Rows and columns
+  | "insert-rows"
+  | "insert-columns"
+  | "delete-rows"
+  | "delete-columns"
+  // Sheets
+  | "create-sheet"
+  | "rename-sheet"
+  | "delete-sheet"
+  | "move-sheet"
+  // Named ranges
+  | "create-named-range"
+  | "update-named-range"
+  // Validation and comments
+  | "set-data-validation"
+  | "remove-data-validation"
+  | "add-comment"
+  | "edit-comment"
+  | "remove-comment"
+  // Fallback
+  | "other";
 
 export interface AgentErrorLogEntry {
   id: string;
@@ -186,12 +186,12 @@ export interface SafetyFlags {
 }
 
 export interface DependencySummary {
-	source: DependencyNodeRef;
-	dependsOn: DependencyNodeRef[];
+  source: DependencyNodeRef;
+  dependsOn: DependencyNodeRef[];
 }
 
 export interface DependencyNodeRef {
-	kind: "table" | "namedRange";
-	name: string;
-	worksheetName?: string;
+  kind: "table" | "namedRange";
+  name: string;
+  worksheetName?: string;
 }

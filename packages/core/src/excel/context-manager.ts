@@ -1,12 +1,12 @@
 import type {
-	AgentMemory,
-	ContextMeta,
-	DataPreview,
-	DependencySummary,
-	ExcelContextSnapshot,
-	SafetyContext,
-	SelectionContext,
-	WorkbookContext,
+  AgentMemory,
+  ContextMeta,
+  DataPreview,
+  DependencySummary,
+  ExcelContextSnapshot,
+  SafetyContext,
+  SelectionContext,
+  WorkbookContext,
 } from "./context-snapshot";
 import type { DataPreviewOptions, ExcelGateway } from "./excel-gateway";
 
@@ -23,20 +23,20 @@ export interface SafetyConfigProvider {
   buildSafetyContext(
     workbookId: string,
     workbook: WorkbookContext,
-    selection: SelectionContext | null,
+    selection: SelectionContext | null
   ): Promise<SafetyContext>;
 }
 
 export interface ContextDetailOptions {
-	includeFormulaSamples?: boolean;
-	includeDependencySummaries?: boolean;
+  includeFormulaSamples?: boolean;
+  includeDependencySummaries?: boolean;
 }
 
 export interface DependencySummaryProvider {
-	buildDependencySummaries(
-		workbook: WorkbookContext,
-		dataPreview: DataPreview,
-	): Promise<DependencySummary[]>;
+  buildDependencySummaries(
+    workbook: WorkbookContext,
+    dataPreview: DataPreview
+  ): Promise<DependencySummary[]>;
 }
 
 export interface ContextManager {
@@ -57,7 +57,7 @@ export class DefaultContextManager implements ContextManager {
     memoryRepository: AgentMemoryRepository,
     safetyConfigProvider: SafetyConfigProvider,
     previewOptions: DataPreviewOptions,
-    dependencySummaryProvider?: DependencySummaryProvider,
+    dependencySummaryProvider?: DependencySummaryProvider
   ) {
     this.excelGateway = excelGateway;
     this.metaProvider = metaProvider;
@@ -68,8 +68,8 @@ export class DefaultContextManager implements ContextManager {
   }
 
   async getSnapshot(
-		options?: ContextDetailOptions,
-	): Promise<ExcelContextSnapshot> {
+    options?: ContextDetailOptions
+  ): Promise<ExcelContextSnapshot> {
     const [meta, workbook, selection] = await Promise.all([
       this.metaProvider.getMeta(),
       this.excelGateway.getWorkbookStructure(),
@@ -78,15 +78,15 @@ export class DefaultContextManager implements ContextManager {
 
     const [dataPreview, memory, safety] = await Promise.all([
       this.excelGateway.getDataPreview(
-			selection,
-			this.previewOptions,
-			options?.includeFormulaSamples,
-		),
+        selection,
+        this.previewOptions,
+        options?.includeFormulaSamples
+      ),
       this.memoryRepository.load(meta.workbookId),
       this.safetyConfigProvider.buildSafetyContext(
         meta.workbookId,
         workbook,
-        selection,
+        selection
       ),
     ]);
 
@@ -99,13 +99,14 @@ export class DefaultContextManager implements ContextManager {
       safety,
     };
 
-		if (options?.includeDependencySummaries && this.dependencySummaryProvider) {
-			const summaries = await this.dependencySummaryProvider.buildDependencySummaries(
-				workbook,
-				dataPreview,
-			);
-			snapshot.dependencySummaries = summaries;
-		}
+    if (options?.includeDependencySummaries && this.dependencySummaryProvider) {
+      const summaries =
+        await this.dependencySummaryProvider.buildDependencySummaries(
+          workbook,
+          dataPreview
+        );
+      snapshot.dependencySummaries = summaries;
+    }
 
     return snapshot satisfies ExcelContextSnapshot;
   }

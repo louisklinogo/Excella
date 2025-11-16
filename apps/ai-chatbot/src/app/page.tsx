@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Conversation,
@@ -50,6 +50,8 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
+import { VoiceInputButton } from "@/components/ai-elements/voice-input-button";
+import { LiveWaveform } from "@/components/ui/live-waveform";
 
 const models = [
   {
@@ -70,6 +72,9 @@ const ChatBotDemo = () => {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { messages, sendMessage, status, regenerate } = useChat();
 
   const handleSubmit = (message: PromptInputMessage) => {
@@ -193,13 +198,33 @@ const ChatBotDemo = () => {
             </PromptInputAttachments>
           </PromptInputHeader>
           <PromptInputBody>
-            <PromptInputTextarea
-              onChange={(e) => setInput(e.target.value)}
-              value={input}
-            />
+            {isRecording && audioStream ? (
+              <div className="flex h-[64px] w-full items-center justify-center px-6">
+                <LiveWaveform
+                  audioStream={audioStream}
+                  barCount={120}
+                  className="w-full"
+                  maxHeight={40}
+                  minHeight={12}
+                />
+              </div>
+            ) : (
+              <PromptInputTextarea
+                onChange={(e) => setInput(e.target.value)}
+                ref={textareaRef}
+                value={input}
+              />
+            )}
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
+              <VoiceInputButton
+                getCurrentText={() => input}
+                onAudioStreamChange={setAudioStream}
+                onRecordingStateChange={setIsRecording}
+                onTranscriptionChange={setInput}
+                textareaRef={textareaRef}
+              />
               <PromptInputActionMenu>
                 <PromptInputActionMenuTrigger />
                 <PromptInputActionMenuContent>

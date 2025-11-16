@@ -15,7 +15,7 @@ export interface ExcelBatchDetails {
 
 export const withExcelBatchTelemetry = async <T>(
   details: ExcelBatchDetails,
-  fn: () => Promise<T> | T,
+  fn: () => Promise<T> | T
 ): Promise<T> => {
   const { action, rows, cols } = details;
   const requestId = getRequestId();
@@ -74,7 +74,7 @@ interface ToolTelemetryOptions {
 export const withToolTelemetry = async <T>(
   tool: string,
   fn: () => Promise<T> | T,
-  options?: ToolTelemetryOptions,
+  options?: ToolTelemetryOptions
 ): Promise<T> => {
   const requestId = getRequestId();
   const config = getCurrentConfig();
@@ -124,22 +124,22 @@ export const withToolTelemetry = async <T>(
 
 export const withGetExcelContextSnapshotTelemetry = async <T>(
   fn: () => Promise<T> | T,
-  options?: ToolTelemetryOptions,
+  options?: ToolTelemetryOptions
 ): Promise<T> => withToolTelemetry("getExcelContextSnapshot", fn, options);
 
 export const withExecuteExcelPlanTelemetry = async <T>(
   fn: () => Promise<T> | T,
-  options?: ToolTelemetryOptions,
+  options?: ToolTelemetryOptions
 ): Promise<T> => withToolTelemetry("executeExcelPlan", fn, options);
 
 export const withPlanBatchTelemetry = async <T>(
   fn: () => Promise<T> | T,
-  details?: Partial<ExcelBatchDetails>,
+  details?: Partial<ExcelBatchDetails>
 ): Promise<T> =>
   withExcelBatchTelemetry(
     {
       action: "execute-plan",
       ...details,
     },
-    fn,
+    fn
   );

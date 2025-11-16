@@ -15,7 +15,12 @@ export class OfficeJsExcelGateway implements ExcelGateway {
       const workbook = context.workbook;
 
       const worksheets = workbook.worksheets;
-      worksheets.load(["items/name", "items/id", "items/position", "items/visibility"]);
+      worksheets.load([
+        "items/name",
+        "items/id",
+        "items/position",
+        "items/visibility",
+      ]);
 
       const tables = workbook.tables;
       tables.load([
@@ -32,7 +37,12 @@ export class OfficeJsExcelGateway implements ExcelGateway {
       ]);
 
       const names = workbook.names;
-      names.load(["items/name", "items/comment", "items/worksheet/name", "items/address"]);
+      names.load([
+        "items/name",
+        "items/comment",
+        "items/worksheet/name",
+        "items/address",
+      ]);
 
       await context.sync();
 
@@ -67,24 +77,24 @@ export class OfficeJsExcelGateway implements ExcelGateway {
   async getDataPreview(
     selection: SelectionContext | null,
     options: DataPreviewOptions,
-    includeFormulas?: boolean,
+    includeFormulas?: boolean
   ): Promise<DataPreview> {
     return Excel.run(async (context) => {
       const { primaryRange, secondaryRanges } = resolvePreviewRanges(
         context,
         selection,
-        options,
+        options
       );
 
       const rangesToLoad = [primaryRange, ...secondaryRanges].filter(
-        (range): range is Excel.Range => range !== null,
+        (range): range is Excel.Range => range !== null
       );
 
       for (const range of rangesToLoad) {
         const properties = ["values", "address", "rowCount", "columnCount"];
-			if (includeFormulas) {
-				properties.push("formulas");
-			}
+        if (includeFormulas) {
+          properties.push("formulas");
+        }
         range.load(properties);
       }
 
@@ -98,7 +108,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
               options.maxPrimaryRows,
               options.maxPrimaryColumns,
               true,
-              includeFormulas === true,
+              includeFormulas === true
             );
 
       const secondarySamples: RangeSample[] = secondaryRanges.map((range) =>
@@ -107,8 +117,8 @@ export class OfficeJsExcelGateway implements ExcelGateway {
           options.maxSecondaryRows,
           options.maxSecondaryColumns,
           false,
-          includeFormulas === true,
-        ),
+          includeFormulas === true
+        )
       );
 
       return { primarySample, secondarySamples } satisfies DataPreview;
@@ -119,7 +129,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
 const mapWorkbookContext = (
   worksheets: Excel.WorksheetCollection,
   tables: Excel.TableCollection,
-  names: Excel.NamedItemCollection,
+  names: Excel.NamedItemCollection
 ): WorkbookContext => {
   const worksheetItems = worksheets.items;
   const tableItems = tables.items;
@@ -155,7 +165,7 @@ const mapWorkbookContext = (
   }));
 
   const activeWorksheet = worksheetSummaries.find(
-    (worksheet) => worksheet.position === 0,
+    (worksheet) => worksheet.position === 0
   );
 
   return {
@@ -168,7 +178,7 @@ const mapWorkbookContext = (
 };
 
 const toVisibility = (
-  visibility: Excel.SheetVisibility | undefined,
+  visibility: Excel.SheetVisibility | undefined
 ): WorkbookContext["worksheets"][number]["visibility"] => {
   if (visibility === Excel.SheetVisibility.veryHidden) {
     return "veryHidden";
@@ -182,11 +192,11 @@ const toVisibility = (
 const buildSelectionContext = (
   activeWorksheet: Excel.Worksheet,
   selectedRange: Excel.Range,
-  tables: Excel.TableCollection,
+  tables: Excel.TableCollection
 ): SelectionContext => {
   const tablesInSheet = tables.items;
   const matchingTable = tablesInSheet.find((table) =>
-    rangeOverlapsTable(selectedRange, table),
+    rangeOverlapsTable(selectedRange, table)
   );
 
   if (!matchingTable) {
@@ -215,15 +225,17 @@ const buildSelectionContext = (
 
 const rangeOverlapsTable = (
   range: Excel.Range,
-  table: Excel.Table,
+  table: Excel.Table
 ): boolean => {
   const tableRange = table.getRange();
-  return range.address === tableRange.address || range.intersect(tableRange) !== null;
+  return (
+    range.address === tableRange.address || range.intersect(tableRange) !== null
+  );
 };
 
 const getTableRegion = (
   range: Excel.Range,
-  table: Excel.Table,
+  table: Excel.Table
 ): SelectionContext["tableRegion"] => {
   if (range.address === table.headerRowRange.address) {
     return "header";
@@ -240,7 +252,7 @@ const getTableRegion = (
 const resolvePreviewRanges = (
   context: Excel.RequestContext,
   selection: SelectionContext | null,
-  options: DataPreviewOptions,
+  options: DataPreviewOptions
 ): {
   primaryRange: Excel.Range | null;
   secondaryRanges: Excel.Range[];
@@ -250,7 +262,7 @@ const resolvePreviewRanges = (
   }
 
   const worksheet = context.workbook.worksheets.getItem(
-    selection.worksheetName ?? "Sheet1",
+    selection.worksheetName ?? "Sheet1"
   );
 
   const primaryRange = worksheet.getRange(selection.rangeAddress ?? "A1");
@@ -265,7 +277,10 @@ const resolvePreviewRanges = (
   }
 
   if (selection.rowCount && selection.rowCount > options.maxPrimaryRows) {
-    const topSample = primaryRange.getResizedRange(options.maxPrimaryRows - 1, 0);
+    const topSample = primaryRange.getResizedRange(
+      options.maxPrimaryRows - 1,
+      0
+    );
     secondaryRanges.push(topSample);
   }
 
@@ -273,78 +288,74 @@ const resolvePreviewRanges = (
 };
 
 const toRangeSample = (
-	range: Excel.Range,
-	maxRows: number,
-	maxColumns: number,
-	hasHeaders: boolean,
-	includeFormulas: boolean,
+  range: Excel.Range,
+  maxRows: number,
+  maxColumns: number,
+  hasHeaders: boolean,
+  includeFormulas: boolean
 ): RangeSample => {
-	const fullRowCount = range.rowCount;
-	const fullColumnCount = range.columnCount;
-	const rowLimit = Math.min(fullRowCount, maxRows);
-	const columnLimit = Math.min(fullColumnCount, maxColumns);
+  const fullRowCount = range.rowCount;
+  const fullColumnCount = range.columnCount;
+  const rowLimit = Math.min(fullRowCount, maxRows);
+  const columnLimit = Math.min(fullColumnCount, maxColumns);
 
-	const allValues = range.values as unknown[][];
-	const limitedValues = allValues
-		.slice(0, rowLimit)
-		.map((row) => row.slice(0, columnLimit));
+  const allValues = range.values as unknown[][];
+  const limitedValues = allValues
+    .slice(0, rowLimit)
+    .map((row) => row.slice(0, columnLimit));
 
-	const allFormulas = includeFormulas
-		? (range.formulas as unknown[][] | undefined)
-		: undefined;
-	const limitedFormulas = allFormulas
-		?.slice(0, rowLimit)
-		.map((row) => row.slice(0, columnLimit));
+  const allFormulas = includeFormulas
+    ? (range.formulas as unknown[][] | undefined)
+    : undefined;
+  const limitedFormulas = allFormulas
+    ?.slice(0, rowLimit)
+    .map((row) => row.slice(0, columnLimit));
 
-	const headers = hasHeaders && limitedValues.length > 0
-		? (limitedValues[0] as (string | null)[])
-		: undefined;
+  const headers =
+    hasHeaders && limitedValues.length > 0
+      ? (limitedValues[0] as (string | null)[])
+      : undefined;
 
-	const dataValues = hasHeaders
-		? limitedValues.slice(1)
-		: limitedValues;
-	const dataFormulas = hasHeaders
-		? limitedFormulas?.slice(1)
-		: limitedFormulas;
+  const dataValues = hasHeaders ? limitedValues.slice(1) : limitedValues;
+  const dataFormulas = hasHeaders ? limitedFormulas?.slice(1) : limitedFormulas;
 
-	const kinds = dataValues.map((row, rowIndex) =>
-		row.map((value, columnIndex) => {
-			const formulaRow = dataFormulas?.[rowIndex];
-			const formula = formulaRow?.[columnIndex];
+  const kinds = dataValues.map((row, rowIndex) =>
+    row.map((value, columnIndex) => {
+      const formulaRow = dataFormulas?.[rowIndex];
+      const formula = formulaRow?.[columnIndex];
 
-			if (typeof formula === "string" && formula.trim() !== "") {
-				return "formula";
-			}
+      if (typeof formula === "string" && formula.trim() !== "") {
+        return "formula";
+      }
 
-			if (value === null || value === undefined || value === "") {
-				return "empty";
-			}
+      if (value === null || value === undefined || value === "") {
+        return "empty";
+      }
 
-			if (typeof value === "string" && value.startsWith("#")) {
-				return "error";
-			}
+      if (typeof value === "string" && value.startsWith("#")) {
+        return "error";
+      }
 
-			return "value";
-		}),
-	);
+      return "value";
+    })
+  );
 
-	const worksheetName = range.worksheet.name;
-	const address = range.address;
+  const worksheetName = range.worksheet.name;
+  const address = range.address;
 
-	return {
-		worksheetName,
-		address,
-		rowCount: rowLimit,
-		columnCount: columnLimit,
-		hasHeaders,
-		headers,
-		rows: dataValues as RangeSample["rows"],
-		truncated:
-			fullRowCount > rowLimit || fullColumnCount > columnLimit,
-		formulas:
-			includeFormulas && dataFormulas
-				? (dataFormulas as (string | null)[][])
-				: undefined,
-		kinds,
-	} satisfies RangeSample;
+  return {
+    worksheetName,
+    address,
+    rowCount: rowLimit,
+    columnCount: columnLimit,
+    hasHeaders,
+    headers,
+    rows: dataValues as RangeSample["rows"],
+    truncated: fullRowCount > rowLimit || fullColumnCount > columnLimit,
+    formulas:
+      includeFormulas && dataFormulas
+        ? (dataFormulas as (string | null)[][])
+        : undefined,
+    kinds,
+  } satisfies RangeSample;
 };

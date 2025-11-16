@@ -1,10 +1,10 @@
+import type { AgentMemoryRepository } from "./context-manager";
 import type {
   AgentActionLogEntry,
   AgentErrorLogEntry,
   AgentMemory,
   ExcelContextSnapshot,
 } from "./context-snapshot";
-import type { AgentMemoryRepository } from "./context-manager";
 
 export interface ContextUpdateInput {
   previousSnapshot: ExcelContextSnapshot;
@@ -40,7 +40,7 @@ export class ContextUpdater {
 
     await this.memoryRepository.save(
       previousSnapshot.meta.workbookId,
-      updatedMemory,
+      updatedMemory
     );
 
     return updatedMemory;

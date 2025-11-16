@@ -1,19 +1,18 @@
-import type { ContextMeta } from "@excella/core/excel/context-snapshot";
 import {
-  ContextUpdater,
-  DefaultContextManager,
   type AgentMemoryRepository,
   type ContextManager,
+  ContextUpdater,
+  DefaultContextManager,
   type MetaProvider,
 } from "@excella/core/excel/context-manager";
+import type { ContextMeta } from "@excella/core/excel/context-snapshot";
 import type {
   DataPreviewOptions,
   ExcelGateway,
 } from "@excella/core/excel/excel-gateway";
 import { DefaultSafetyConfigProvider } from "@excella/core/excel/safety-config";
-
-import { HiddenWorksheetMemoryRepository } from "./hidden-worksheet-memory-repository";
 import { OfficeJsDependencySummaryProvider } from "./dependency-summary-provider";
+import { HiddenWorksheetMemoryRepository } from "./hidden-worksheet-memory-repository";
 import { OfficeJsExcelGateway } from "./officejs-excel-gateway";
 
 export interface ContextEnvironment {
@@ -64,7 +63,7 @@ export const createExcelContextEnvironment = (): ContextEnvironment => {
     memoryRepository,
     safetyConfigProvider,
     previewOptions,
-    dependencySummaryProvider,
+    dependencySummaryProvider
   );
 
   const contextUpdater = new ContextUpdater(memoryRepository);
