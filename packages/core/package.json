@@ -7,7 +7,15 @@
     ".": "./src/config/model-factory.ts",
     "./env-config": "./src/config/env-config.ts",
     "./model-config": "./src/config/model-config.ts",
-    "./utils": "./src/utils.ts"
+    "./utils": "./src/utils.ts",
+    "./excel/context-snapshot": "./src/excel/context-snapshot.ts",
+    "./excel/excel-gateway": "./src/excel/excel-gateway.ts",
+    "./excel/context-manager": "./src/excel/context-manager.ts",
+    "./excel/context-updater": "./src/excel/context-updater.ts",
+    "./excel/plan-types": "./src/excel/plan-types.ts",
+    "./excel/schemas": "./src/excel/schemas.ts",
+    "./excel/safety-config": "./src/excel/safety-config.ts",
+    "./excel/basic-plan-validator": "./src/excel/basic-plan-validator.ts"
   },
   "scripts": {
     "lint": "bunx ultracite check packages/core",
