@@ -1,6 +1,6 @@
 import { createModel, type ModelFactoryOptions } from "@excella/core";
 import type { ModelProvider } from "@excella/core/model-config";
-import { logger, startTimer } from "@excella/logging";
+import { seedRequestContext, startTimer } from "@excella/logging";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 type ChatRequestExtras = {
@@ -38,46 +38,49 @@ const parseModelSelection = (value?: string): ModelFactoryOptions => {
 };
 
 export async function POST(request: Request): Promise<Response> {
-  const { messages, body, data } = (await request.json()) as ChatRequestBody;
+  return seedRequestContext(request, async ({ logger: requestLogger }) => {
+    const { messages, body, data } = (await request.json()) as ChatRequestBody;
 
-  const extras: ChatRequestExtras = body ?? data ?? {};
-  const modelOptions = parseModelSelection(extras.model);
+    const extras: ChatRequestExtras = body ?? data ?? {};
+    const modelOptions = parseModelSelection(extras.model);
 
-  const timer = startTimer();
-  const provider = modelOptions.provider ?? "unknown";
-  const modelId = modelOptions.modelId ?? "default";
+    const timer = startTimer();
+    const provider = modelOptions.provider ?? "unknown";
+    const modelId = modelOptions.modelId ?? "default";
 
-  logger.info("ai.request.start", {
-    provider,
-    model: modelId,
+    requestLogger.info("ai.request.start", {
+      provider,
+      model: modelId,
+    });
+
+    try {
+      const result = await streamText({
+        model: createModel(modelOptions),
+        messages: convertToModelMessages(messages),
+      });
+
+      const durationMs = Date.now() - timer.start;
+
+      requestLogger.info("ai.request.done", {
+        provider,
+        model: modelId,
+        durationMs,
+        status: "ok",
+      });
+
+      return result.toUIMessageStreamResponse();
+    } catch (error) {
+      const durationMs = Date.now() - timer.start;
+
+      requestLogger.error("ai.request.done", {
+        provider,
+        model: modelId,
+        durationMs,
+        status: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw error;
+    }
   });
-
-  try {
-    const result = await streamText({
-      model: createModel(modelOptions),
-      messages: convertToModelMessages(messages),
-    });
-
-    const durationMs = Date.now() - timer.start;
-
-    logger.info("ai.request.done", {
-      provider,
-      model: modelId,
-      durationMs,
-      status: "ok",
-    });
-
-    return result.toUIMessageStreamResponse();
-  } catch (error) {
-    const durationMs = Date.now() - timer.start;
-
-    logger.error("ai.request.done", {
-      provider,
-      model: modelId,
-      durationMs,
-      status: "error",
-      error,
-    });
-    throw error;
-  }
 }
