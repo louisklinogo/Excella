@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "apps/ai-chatbot" },
+    { "path": "packages/core" },
+    { "path": "packages/agents" }
+  ]
+}
