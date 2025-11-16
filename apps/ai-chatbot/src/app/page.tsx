@@ -14,6 +14,12 @@ import {
   Message,
   MessageAction,
   MessageActions,
+  MessageBranch,
+  MessageBranchContent,
+  MessageBranchNext,
+  MessageBranchPage,
+  MessageBranchPrevious,
+  MessageBranchSelector,
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
@@ -74,8 +80,61 @@ const ChatBotDemo = () => {
   const [webSearch, setWebSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [messageBranches, setMessageBranches] = useState<
+    Record<string, string[]>
+  >({});
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { messages, sendMessage, status, regenerate } = useChat();
+
+  const getBranchGroupId = (messageId: string) => {
+    const messageIndex = messages.findIndex(
+      (candidate) => candidate.id === messageId
+    );
+
+    if (messageIndex === -1) {
+      return messageId;
+    }
+
+    const previousUserMessage = [...messages.slice(0, messageIndex)]
+      .reverse()
+      .find((candidate) => candidate.role === "user");
+
+    return previousUserMessage?.id ?? messageId;
+  };
+
+  const lastAssistantMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === "assistant");
+
+  const handleRegenerateLast = async () => {
+    if (!lastAssistantMessage) {
+      return;
+    }
+
+    const lastAssistantTextPart = lastAssistantMessage.parts.find(
+      (part) => part.type === "text"
+    );
+
+    if (!lastAssistantTextPart) {
+      return;
+    }
+
+    const branchGroupId = getBranchGroupId(lastAssistantMessage.id);
+
+    setMessageBranches((previous) => {
+      const existingBranches = previous[branchGroupId] ?? [];
+
+      return {
+        ...previous,
+        [branchGroupId]: [
+          ...existingBranches,
+          lastAssistantTextPart.text,
+        ],
+      };
+    });
+
+    await regenerate();
+  };
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -105,82 +164,115 @@ const ChatBotDemo = () => {
       <div className="flex h-full flex-col">
         <Conversation className="h-full">
           <ConversationContent>
-            {messages.map((message) => (
-              <div key={message.id}>
-                {message.role === "assistant" &&
-                  message.parts.filter((part) => part.type === "source-url")
-                    .length > 0 && (
+            {messages.map((message) => {
+              const isAssistant = message.role === "assistant";
+              const isLastAssistant =
+                isAssistant &&
+                lastAssistantMessage &&
+                lastAssistantMessage.id === message.id;
+
+              const branchGroupId = getBranchGroupId(message.id);
+
+              const textPart = message.parts.find(
+                (part) => part.type === "text"
+              );
+              const reasoningParts = message.parts.filter(
+                (part) => part.type === "reasoning"
+              );
+              const sourceParts = message.parts.filter(
+                (part) => part.type === "source-url"
+              );
+
+              const existingBranches = messageBranches[branchGroupId] ?? [];
+              const branches = textPart
+                ? [...existingBranches, textPart.text]
+                : existingBranches;
+
+              return (
+                <div key={message.id}>
+                  {isAssistant && sourceParts.length > 0 && (
                     <Sources>
-                      <SourcesTrigger
-                        count={
-                          message.parts.filter(
-                            (part) => part.type === "source-url"
-                          ).length
-                        }
-                      />
-                      {message.parts
-                        .filter((part) => part.type === "source-url")
-                        .map((part, i) => (
-                          <SourcesContent key={`${message.id}-${i}`}>
-                            <Source
-                              href={part.url}
-                              key={`${message.id}-${i}`}
-                              title={part.url}
-                            />
-                          </SourcesContent>
-                        ))}
+                      <SourcesTrigger count={sourceParts.length} />
+                      {sourceParts.map((part, index) => (
+                        <SourcesContent key={`${message.id}-source-${index}`}>
+                          <Source
+                            href={part.url}
+                            title={part.url}
+                          />
+                        </SourcesContent>
+                      ))}
                     </Sources>
                   )}
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case "text":
-                      return (
-                        <Message from={message.role} key={`${message.id}-${i}`}>
-                          <MessageContent>
-                            <MessageResponse>{part.text}</MessageResponse>
-                          </MessageContent>
-                          {message.role === "assistant" &&
-                            i === messages.length - 1 && (
+
+                  {reasoningParts.map((part, index) => (
+                    <Reasoning
+                      className="w-full"
+                      isStreaming={
+                        status === "streaming" &&
+                        index === message.parts.length - 1 &&
+                        message.id === messages.at(-1)?.id
+                      }
+                      key={`${message.id}-reasoning-${index}`}
+                    >
+                      <ReasoningTrigger />
+                      <ReasoningContent>{part.text}</ReasoningContent>
+                    </Reasoning>
+                  ))}
+
+                  {textPart && isAssistant && branches.length > 0 && (
+                    <MessageBranch
+                      className="w-full"
+                      defaultBranch={Math.max(branches.length - 1, 0)}
+                      key={`${branchGroupId}-${branches.length}`}
+                    >
+                      <MessageBranchContent>
+                        {branches.map((branchText, branchIndex) => (
+                          <Message
+                            from={message.role}
+                            key={`${message.id}-branch-${branchIndex}`}
+                          >
+                            <MessageContent>
+                              <MessageResponse>{branchText}</MessageResponse>
+                            </MessageContent>
+                            {isLastAssistant && (
                               <MessageActions>
+                                <MessageBranchSelector from={message.role}>
+                                  <MessageBranchPrevious />
+                                  <MessageBranchPage />
+                                  <MessageBranchNext />
+                                </MessageBranchSelector>
                                 <MessageAction
                                   label="Retry"
-                                  onClick={() => regenerate()}
+                                  onClick={handleRegenerateLast}
                                 >
                                   <RefreshCcwIcon className="size-3" />
                                 </MessageAction>
                                 <MessageAction
                                   label="Copy"
                                   onClick={() =>
-                                    navigator.clipboard.writeText(part.text)
+                                    navigator.clipboard.writeText(branchText)
                                   }
                                 >
                                   <CopyIcon className="size-3" />
                                 </MessageAction>
                               </MessageActions>
                             )}
-                        </Message>
-                      );
-                    case "reasoning":
-                      return (
-                        <Reasoning
-                          className="w-full"
-                          isStreaming={
-                            status === "streaming" &&
-                            i === message.parts.length - 1 &&
-                            message.id === messages.at(-1)?.id
-                          }
-                          key={`${message.id}-${i}`}
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-            ))}
+                          </Message>
+                        ))}
+                      </MessageBranchContent>
+                    </MessageBranch>
+                  )}
+
+                  {textPart && !isAssistant && (
+                    <Message from={message.role}>
+                      <MessageContent>
+                        <MessageResponse>{textPart.text}</MessageResponse>
+                      </MessageContent>
+                    </Message>
+                  )}
+                </div>
+              );
+            })}
             {status === "submitted" && <Loader />}
           </ConversationContent>
           <ConversationScrollButton />

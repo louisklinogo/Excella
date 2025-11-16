@@ -137,6 +137,7 @@ export const MessageBranch = ({
   defaultBranch = 0,
   onBranchChange,
   className,
+  children,
   ...props
 }: MessageBranchProps) => {
   const [currentBranch, setCurrentBranch] = useState(defaultBranch);
@@ -173,7 +174,9 @@ export const MessageBranch = ({
       <div
         className={cn("grid w-full gap-2 [&>div]:pb-0", className)}
         {...props}
-      />
+      >
+        {children}
+      </div>
     </MessageBranchContext.Provider>
   );
 };
@@ -217,13 +220,6 @@ export const MessageBranchSelector = ({
   from,
   ...props
 }: MessageBranchSelectorProps) => {
-  const { totalBranches } = useMessageBranch();
-
-  // Don't render if there's only one branch
-  if (totalBranches <= 1) {
-    return null;
-  }
-
   return (
     <ButtonGroup
       className="[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md"
@@ -288,6 +284,9 @@ export const MessageBranchPage = ({
 }: MessageBranchPageProps) => {
   const { currentBranch, totalBranches } = useMessageBranch();
 
+  const safeTotalBranches = totalBranches || 1;
+  const safeCurrentBranch = Math.min(currentBranch, safeTotalBranches - 1);
+
   return (
     <ButtonGroupText
       className={cn(
@@ -296,7 +295,7 @@ export const MessageBranchPage = ({
       )}
       {...props}
     >
-      {currentBranch + 1} of {totalBranches}
+      {safeCurrentBranch + 1} / {safeTotalBranches}
     </ButtonGroupText>
   );
 };
