@@ -1,0 +1,157 @@
+# Workflows overview | Workflows
+
+Workflows in Mastra help you orchestrate complex sequences of tasks with features like branching, parallel execution, resource suspension, and more.
+
+Source: https://mastra.ai/docs/workflows/overview
+
+---
+
+# Workflows overview
+
+Workflows let you define complex sequences of tasks using clear, structured steps rather than relying on the reasoning of a single agent. They give you full control over how tasks are broken down, how data moves between them, and what gets executed when. 
+
+## When to use workflows​
+
+Use workflows for tasks that are clearly defined upfront and involve multiple steps with a specific execution order. They give you fine-grained control over how data flows and transforms between steps, and which primitives are called at each stage. 
+
+> 📹 Watch:  → An introduction to workflows, and how they compare to agents YouTube (7 minutes)
+
+## Core principles​
+
+Mastra workflows operate using these principles: 
+
+- Defining steps with createStep, specifying input/output schemas and business logic.
+- Composing steps with createWorkflow to define the execution flow.
+- Running workflows to execute the entire sequence, with built-in support for suspension, resumption, and streaming results.
+
+## Creating a workflow step​
+
+Steps are the building blocks of workflows. Create a step using `createStep()`with `inputSchema`and `outputSchema`to define the data it accepts and returns. 
+
+The `execute`function defines what the step does. Use it to call functions in your codebase, external APIs, agents, or tools. 
+
+src/mastra/workflows/test-workflow.ts 
+```
+import { createStep } from "@mastra/core/workflows";const step1 = createStep({  id: "step-1",  inputSchema: z.object({    message: z.string()  }),  outputSchema: z.object({    formatted: z.string()  }),  execute: async ({ inputData }) => {    const { message } = inputData;    return {      formatted: message.toUpperCase()    };  }});
+```
+
+> See the Step Class for a full list of configuration options.
+
+### Using agents and tools​
+
+Workflow steps can also call registered agents or import and execute tools directly, visit the [Using Tools](/docs/agents/using-tools)page for more information. 
+
+## Creating a workflow​
+
+Create a workflow using `createWorkflow()`with `inputSchema`and `outputSchema`to define the data it accepts and returns. Add steps using `.then()`and complete the workflow with `.commit()`. 
+
+src/mastra/workflows/test-workflow.ts 
+```
+import { createWorkflow, createStep } from "@mastra/core/workflows";import { z } from "zod";const step1 = createStep({...});export const testWorkflow = createWorkflow({  id: "test-workflow",  inputSchema: z.object({    message: z.string()  }),  outputSchema: z.object({    output: z.string()  })})  .then(step1)  .commit();
+```
+
+> See the Workflow Class for a full list of configuration options.
+
+### Understanding control flow​
+
+Workflows can be composed using a number of different methods. The method you choose determines how each step's schema should be structured. Visit the [Control Flow](/docs/workflows/control-flow)page for more information. 
+
+## Workflow state​
+
+Workflow state lets you share values across steps without passing them through every step’s inputSchema and outputSchema. All state values are defined in the workflow’s stateSchema, but each step only declares the values it needs. To set initial values, use initialState when running the workflow. 
+
+src/mastra/workflows/test-workflow.ts 
+```
+const step1 = createStep({  // ...  stateSchema: z.object({    processedItems: z.array(z.string()),  }),  execute: async ({ inputData, state, setState }) => {    const { message } = inputData;    const { processedItems } = state;    setState({      ...state,      processedItems: [...processedItems, "item-1", "item-2"],    });    return {      formatted: message.toUpperCase(),    };  },});const step2 = createStep({  // ...  stateSchema: z.object({    metadata: z.object({      processedBy: z.string(),    }),  }),  execute: async ({ inputData, state }) => {    const { formatted } = inputData;    const { metadata } = state;    return {      emphasized: `${formatted}!! ${metadata.processedBy}`,    };  },});export const testWorkflow = createWorkflow({  // ...  stateSchema: z.object({    processedItems: z.array(z.string()),    metadata: z.object({      processedBy: z.string(),    }),  }),})  .then(step1)  .then(step2)  .commit();
+```
+
+## Workflows as steps​
+
+Use a workflow as a step to reuse its logic within a larger composition. Input and output follow the same schema rules described in [Core principles](/docs/workflows/control-flow). 
+
+src/mastra/workflows/test-workflow.ts 
+```
+const step1 = createStep({...});const step2 = createStep({...});const childWorkflow = createWorkflow({  id: "child-workflow",  inputSchema: z.object({    message: z.string()  }),  outputSchema: z.object({    emphasized: z.string()  })})  .then(step1)  .then(step2)  .commit();export const testWorkflow = createWorkflow({  id: "test-workflow",  inputSchema: z.object({    message: z.string()  }),  outputSchema: z.object({    emphasized: z.string()  })})  .then(childWorkflow)  .commit();
+```
+
+### Cloning a workflow​
+
+Clone a workflow using `cloneWorkflow()`when you want to reuse its logic but track it separately under a new ID. Each clone runs independently and appears as a distinct workflow in logs and observability tools. 
+
+src/mastra/workflows/test-workflow.ts 
+```
+import { cloneWorkflow } from "@mastra/core/workflows";const step1 = createStep({...});const parentWorkflow = createWorkflow({...})const clonedWorkflow = cloneWorkflow(parentWorkflow, { id: "cloned-workflow" });export const testWorkflow = createWorkflow({...})  .then(step1)  .then(clonedWorkflow)  .commit();
+```
+
+## Registering a workflow​
+
+Register your workflow in the Mastra instance to make it available throughout your application. Once registered, it can be called from agents or tools and has access to shared resources such as logging and observability features: 
+
+src/mastra/index.ts 
+```
+import { Mastra } from "@mastra/core/mastra";import { testWorkflow } from "./workflows/test-workflow";export const mastra = new Mastra({  // ...  workflows: { testWorkflow },});
+```
+
+## Referencing a workflow​
+
+You can run workflows from agents, tools, the Mastra Client, or the command line. Get a reference by calling `.getWorkflow()`on your `mastra`or `mastraClient`instance, depending on your setup: 
+
+```
+const testWorkflow = mastra.getWorkflow("testWorkflow");
+```
+
+info `mastra.getWorkflow()`is preferred over a direct import, since it provides access to the Mastra instance configuration (logger, telemetry, storage, registered agents, and vector stores). 
+
+## Running workflows​
+
+Workflows can be run in two modes: start waits for all steps to complete before returning, and stream emits events during execution. Choose the approach that fits your use case: start when you only need the final result, and stream when you want to monitor progress or trigger actions as steps complete. 
+
+- Start
+- Stream
+
+Create a workflow run instance using `createRunAsync()`, then call `.start()`with `inputData`matching the workflow's `inputSchema`. The workflow executes all steps and returns the final result. 
+
+```
+const run = await testWorkflow.createRunAsync();const result = await run.start({  inputData: {    message: "Hello world"  }});console.log(result);
+```
+
+Create a workflow run instance using `.createRunAsync()`, then call `.stream()`with `inputData`matching the workflow's `inputSchema`. The workflow emits events as each step executes, which you can iterate over to track progress. 
+
+```
+const run = await testWorkflow.createRunAsync();const result = await run.stream({  inputData: {    message: "Hello world"  }});for await (const chunk of result.stream) {  console.log(chunk);}
+```
+
+### Workflow status types​
+
+When running a workflow, its `status`can be `running`, `suspended`, `success`, or `failed`. 
+
+### Workflow output​
+
+The workflow output includes the full execution lifecycle, showing the input and output for each step. It also includes the status of each step, the overall workflow status, and the final result. This gives you clear insight into how data moved through the workflow, what each step produced, and how the workflow completed. 
+
+```
+{  "status": "success",  "steps": {    // ...    "step-1": {      "status": "success",      "payload": {        "message": "Hello world"      },      "output": {        "formatted": "HELLO WORLD"      },    },    "step-2": {      "status": "success",      "payload": {        "formatted": "HELLO WORLD"      },      "output": {        "emphasized": "HELLO WORLD!!!"      },    }  },  "input": {    "message": "Hello world"  },  "result": {    "emphasized": "HELLO WORLD!!!"  }}
+```
+
+## Using RuntimeContext​
+
+Use [RuntimeContext](/docs/server-db/runtime-context)to access request-specific values. This lets you conditionally adjust behavior based on the context of the request. 
+
+src/mastra/workflows/test-workflow.ts 
+```
+export type UserTier = {  "user-tier": "enterprise" | "pro";};const step1 = createStep({  // ...  execute: async ({ runtimeContext }) => {    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];    const maxResults = userTier === "enterprise"      ? 1000      : 50;    return { maxResults };  }});
+```
+
+> See Runtime Context for more information.
+
+## Testing with Studio​
+
+Use [Studio](/docs/getting-started/studio)to easily run workflows with different inputs, visualize the execution lifecycle, see the inputs and outputs for each step, and inspect each part of the workflow in more detail. 
+
+## Related​
+
+For a closer look at workflows, see our [Workflow Guide](/guides/guide/ai-recruiter), which walks through the core concepts with a practical example. 
+
+- Control Flow
+- Suspend & Resume
+- Error Handling

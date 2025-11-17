@@ -1,0 +1,86 @@
+# Runtime Context | Server & DB
+
+Learn how to use Mastra's RuntimeContext to provide dynamic, request-specific configuration to agents.
+
+Source: https://mastra.ai/docs/server-db/runtime-context
+
+---
+
+# Runtime Context
+
+Agents, tools, and workflows can all accept `RuntimeContext`as a parameter, making request-specific values available to the underlying primitives. 
+
+## When to use RuntimeContext​
+
+Use `RuntimeContext`when a primitive’s behavior should change based on runtime conditions. For example, you might switch models or storage backends based on user attributes, or adjust instructions and tool selection based on language. 
+
+note **Note:**`RuntimeContext`is primarily used for passing data into specific
+requests. It's distinct from agent memory, which handles conversation
+history and state persistence across multiple calls. 
+
+## Setting values​
+
+Pass `runtimeContext`into an agent, network, workflow, or tool call to make values available to all underlying primitives during execution. Use `.set()`to define values before making the call. 
+
+The `.set()`method takes two arguments: 
+
+2. key: The name used to identify the value.
+4. value: The data to associate with that key.
+
+```
+import { RuntimeContext } from "@mastra/core/runtime-context";export type UserTier = {  "user-tier": "enterprise" | "pro";};const runtimeContext = new RuntimeContext<UserTier>();runtimeContext.set("user-tier", "enterprise");const agent = mastra.getAgent("weatherAgent");await agent.generate("What's the weather in London?", {  runtimeContext,});const routingAgent = mastra.getAgent("routingAgent");routingAgent.network("What's the weather in London?", {  runtimeContext,});const run = await mastra.getWorkflow("weatherWorkflow").createRunAsync();await run.start({  inputData: {    location: "London",  },  runtimeContext,});await run.resume({  resumeData: {    city: "New York",  },  runtimeContext,});await weatherTool.execute({  context: {    location: "London",  },  runtimeContext,});
+```
+
+### Setting values based on request headers​
+
+You can populate `runtimeContext`dynamically in server middleware by extracting information from the request. In this example, the `temperature-unit`is set based on the Cloudflare `CF-IPCountry`header to ensure responses match the user's locale. 
+
+src/mastra/index.ts 
+```
+import { Mastra } from "@mastra/core/mastra";import { RuntimeContext } from "@mastra/core/runtime-context";import { testWeatherAgent } from "./agents/test-weather-agent";export const mastra = new Mastra({  agents: { testWeatherAgent },  server: {    middleware: [      async (context, next) => {        const country = context.req.header("CF-IPCountry");        const runtimeContext = context.get("runtimeContext");        runtimeContext.set(          "temperature-unit",          country === "US" ? "fahrenheit" : "celsius",        );        await next();      },    ],  },});
+```
+
+> See Middleware for how to use server middleware.
+
+## Accessing values with agents​
+
+You can access the `runtimeContext`argument from any supported configuration options in agents. These functions can be sync or `async`. Use the `.get()`method to read values from `runtimeContext`. 
+
+src/mastra/agents/weather-agent.ts 
+```
+export type UserTier = {  "user-tier": "enterprise" | "pro";};export const weatherAgent = new Agent({  name: "weather-agent",  instructions: async ({ runtimeContext }) => {    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];    if (userTier === "enterprise") {      // ...    }    // ...  },  model: ({ runtimeContext }) => {    // ...  },  tools: ({ runtimeContext }) => {    // ...  },  memory: ({ runtimeContext }) => {    // ...  },});
+```
+
+You can also use `runtimeContext`with other options like `agents`, `workflows`, `scorers`, `inputProcessors`, and `outputProcessors`. 
+
+> See Agent for a full list of configuration options.
+
+## Accessing values from workflow steps​
+
+You can access the `runtimeContext`argument from a workflow step's `execute`function. This function can be sync or async. Use the `.get()`method to read values from `runtimeContext`. 
+
+src/mastra/workflows/weather-workflow.ts 
+```
+export type UserTier = {  "user-tier": "enterprise" | "pro";};const stepOne = createStep({  id: "step-one",  execute: async ({ runtimeContext }) => {    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];    if (userTier === "enterprise") {      // ...    }    // ...  },});
+```
+
+> See createStep() for a full list of configuration options.
+
+## Accessing values with tools​
+
+You can access the `runtimeContext`argument from a tool’s `execute`function. This function is `async`. Use the `.get()`method to read values from `runtimeContext`. 
+
+src/mastra/tools/weather-tool.ts 
+```
+export type UserTier = {  "user-tier": "enterprise" | "pro";};export const weatherTool = createTool({  id: "weather-tool",  execute: async ({ runtimeContext }) => {    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];    if (userTier === "enterprise") {      // ...    }    // ...  },});
+```
+
+> See createTool() for a full list of configuration options.
+
+## Related​
+
+- Runtime Context Example
+- Agent Runtime Context
+- Tool Runtime Context
+- Workflow Runtime Context
+- Middleware Runtime Context    

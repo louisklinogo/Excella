@@ -1,0 +1,116 @@
+# Using Tools | Agents
+
+Learn how to create tools and add them to agents to extend capabilities beyond text generation.
+
+Source: https://mastra.ai/docs/agents/using-tools
+
+---
+
+# Using Tools
+
+Agents use tools to call APIs, query databases, or run custom functions from your codebase. Tool give agents capabilities beyond language generation by providing structured access to data and performing clearly defined operations. You can also load tools from remote [MCP servers](/docs/mcp/overview)to expand an agent’s capabilities. 
+
+Each tool typically defines: 
+
+- Inputs: What information the tool needs to run (defined with an inputSchema).
+- Outputs: The structure of the data the tool returns (defined with an outputSchema).
+- Execution Logic: The code that performs the tool's action.
+- Description: Text that helps the agent understand what the tool does and when to use it.
+
+You can also load tools from remote [MCP servers](/docs/mcp/overview)to expand an agent's capabilities. 
+
+Use [Studio](/docs/getting-started/studio)to test tools with different inputs, inspect execution results, and verify tool behavior. 
+
+## When to use tools​
+
+Use tools when an agent needs additional context or information from remote resources, or when it needs to run code that performs a specific operation. This includes tasks a model can't reliably handle on its own, such as fetching live data or returning consistent, well defined outputs. 
+
+## Creating a tool​
+
+When creating tools, keep descriptions simple and focused on what the tool does, emphasizing its primary use case. Descriptive schema names can also help guide the agent on how to use the tool. 
+
+This example shows how to create a tool that fetches weather data from an API. When the agent calls the tool, it provides the required input as defined by the tool’s `inputSchema`. The tool accesses this data through its `context`argument, which in this example includes the `location`used in the weather API query. 
+
+src/mastra/tools/weather-tool.ts 
+```
+import { createTool } from "@mastra/core/tools";import { z } from "zod";export const weatherTool = createTool({  id: "weather-tool",  description: "Fetches weather for a location.",  inputSchema: z.object({    location: z.string(),  }),  outputSchema: z.object({    weather: z.string(),  }),  execute: async ({ context }) => {    const { location } = context;    const response = await fetch(`https://wttr.in/${location}?format=3`);    const weather = await response.text();    return { weather };  },});
+```
+
+## Adding tools to an agent​
+
+To make a tool available to an agent, add it to `tools`. Mentioning available tools and their general purpose in the agent's system prompt helps the agent decide when to call a tool and when not to. 
+
+An agent can use multiple tools to handle more complex tasks by delegating specific parts to individual tools. The agent decides which tools to use based on the user's message, the agent's instructions, and the tool descriptions and schemas. 
+
+src/mastra/agents/weather-agent.ts 
+```
+import { openai } from "@ai-sdk/openai";import { Agent } from "@mastra/core/agent";import { weatherTool } from "../tools/weather-tool";export const weatherAgent = new Agent({  name: "weather-agent",  instructions: `      You are a helpful weather assistant.      Use the weatherTool to fetch current weather data.`,  model: openai("gpt-4o-mini"),  tools: { weatherTool },});
+```
+
+## Calling an agent​
+
+The agent uses the tool’s `inputSchema`to infer what data the tool expects. In this case, it extracts `London`as the `location`from the message and makes it available to the tool’s context. 
+
+```
+import { mastra } from "./mastra";const agent = mastra.getAgent("weatherAgent");const result = await agent.generate("What's the weather in London?");
+```
+
+## Using RuntimeContext​
+
+Use [RuntimeContext](/docs/server-db/runtime-context)to access request-specific values. This lets you conditionally adjust behavior based on the context of the request. 
+
+src/mastra/tools/test-tool.ts 
+```
+export type UserTier = {  "user-tier": "enterprise" | "pro";};const advancedTools = () => {  // ...};const baseTools =  () => {  // ...};export const testTool = createTool({  // ...  execute: async ({ runtimeContext }) => {    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];    return userTier === "enterprise"      ? advancedTools      : baseTools;  }});
+```
+
+> See Runtime Context for more information.
+
+## Cancelling tool execution with AbortSignal​
+
+When you initiate an agent interaction using `.generate()`or `.stream()`, you can provide an `AbortSignal`. Mastra automatically forwards this signal to any tool executions that occur during that interaction. 
+
+```
+const controller = new AbortController();try {  const result = await agent.generate("What's the weather in London?", {  abortSignal: controller.signal});  console.log(result.text);} catch (error) {  if (error.name === "AbortError") {    console.log("Agent generation was aborted.");  } else {    console.error(error);  }}
+```
+
+This allows you to cancel long-running operations within your tools, such as network requests or intensive computations, if the parent agent call is aborted. 
+
+You access the `abortSignal`in the second parameter of the tool's `execute`function. 
+
+src/mastra/tools/weather-tool.ts 
+```
+export const weatherTool = createTool({  // ...  execute: async ({ context }, { abortSignal }) => {    const { location } = context    const response = await fetch(`https://wttr.in/${location}?format=3`, {      signal: abortSignal    });    if (abortSignal?.aborted) {      throw new Error("Aborted");    }    const weather = await response.text();    return { weather };  }});
+```
+
+## AI SDK Tool Format​
+
+Mastra maintains compatibility with the tool format used by the Vercel AI SDK ( `ai`package). You can define tools using the `tool`function from the `ai`package and use them directly within your Mastra agents alongside tools created with Mastra's `createTool`. 
+
+First, ensure you have the `ai`package installed: 
+
+```
+npm install ai
+```
+
+Here's an example of a tool defined using the Vercel AI SDK format: 
+
+src/mastra/tools/vercel-weather-tool.ts 
+```
+import { tool } from "ai";import { z } from "zod";export const vercelWeatherTool = tool({  description: "Fetches weather for a location.",  parameters: z.object({    location: z.string(),  }),  execute: async ({ location }) => {    const response = await fetch(`https://wttr.in/${location}?format=3`);    const weather = await response.text();    return { weather };  },});
+```
+
+You can then add this tool to your Mastra agent just like any other tool: 
+
+src/mastra/agents/test-agent.ts 
+```
+import { Agent } from "@mastra/core/agent";import { openai } from "@ai-sdk/openai";import { weatherTool } from "../tools/weather-tool";import { vercelWeatherTool } from "../tools/vercel-weather-tool";export const testAgent = new Agent({  name: "weather-agent",  instructions: "You are a helpful weather assistant.",  model: openai("gpt-4o-mini"),  tools: { weatherTool, vercelWeatherTool }});
+```
+
+Mastra supports both tool formats, allowing you to mix and match as needed. 
+
+## Related​
+
+- Agent Memory
+- Runtime Context
+- Calling Agents

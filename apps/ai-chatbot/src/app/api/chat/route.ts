@@ -1,6 +1,11 @@
 import { createModel, type ModelFactoryOptions } from "@excella/core";
 import type { ModelProvider } from "@excella/core/model-config";
-import { seedRequestContext, startTimer } from "@excella/logging";
+import {
+  createAiTelemetryOptions,
+  seedRequestContext,
+  startTimer,
+} from "@excella/logging";
+import * as Sentry from "@sentry/nextjs";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 type ChatRequestExtras = {
@@ -38,6 +43,13 @@ const parseModelSelection = (value?: string): ModelFactoryOptions => {
 
 export function POST(request: Request): Promise<Response> {
   return seedRequestContext(request, async ({ logger: requestLogger }) => {
+    const url = new URL(request.url);
+
+    // Sentry verification: trigger a test error when explicitly requested.
+    if (url.searchParams.get("sentryTest") === "1") {
+      throw new Error("Sentry test error – manual verification trigger");
+    }
+
     const { messages, body, data } = (await request.json()) as ChatRequestBody;
 
     const extras: ChatRequestExtras = body ?? data ?? {};
@@ -53,10 +65,33 @@ export function POST(request: Request): Promise<Response> {
     });
 
     try {
-      const result = await streamText({
-        model: createModel(modelOptions),
-        messages: convertToModelMessages(messages),
-      });
+      const telemetry = createAiTelemetryOptions(
+        "ai-chat.chat",
+        {
+          provider,
+          model: modelId,
+          webSearch: extras.webSearch ?? false,
+        },
+        {
+          recordInputs: false,
+          recordOutputs: false,
+        }
+      );
+
+      const result = await Sentry.startSpan(
+        {
+          op: "ai.request",
+          name: `AI Chat (${provider}/${modelId})`,
+        },
+        async (span) => {
+          span?.setAttribute("webSearch", extras.webSearch ?? false);
+          return streamText({
+            model: createModel(modelOptions),
+            messages: convertToModelMessages(messages),
+            experimental_telemetry: telemetry,
+          });
+        }
+      );
 
       const durationMs = Date.now() - timer.start;
 
@@ -70,6 +105,8 @@ export function POST(request: Request): Promise<Response> {
       return result.toUIMessageStreamResponse();
     } catch (error) {
       const durationMs = Date.now() - timer.start;
+
+      Sentry.captureException(error);
 
       requestLogger.error("ai.request.done", {
         provider,

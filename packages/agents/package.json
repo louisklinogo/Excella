@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.37",
+    "@ai-sdk/google": "^2.0.33",
     "@mastra/core": "^0.22.2",
     "@mastra/memory": "^0.15.8",
     "@mendable/firecrawl-js": "^4.4.1",

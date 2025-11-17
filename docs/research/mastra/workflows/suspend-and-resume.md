@@ -1,0 +1,69 @@
+# Suspend & Resume | Workflows
+
+Suspend and resume in Mastra workflows allows you to pause execution while waiting for external input or resources.
+
+Source: https://mastra.ai/docs/workflows/suspend-and-resume
+
+---
+
+# Suspend & Resume
+
+Workflows can be paused at any step to collect additional data, wait for API callbacks, throttle costly operations, or request [human-in-the-loop](/docs/workflows/human-in-the-loop)input. When a workflow is suspended, its current execution state is saved as a snapshot. You can later resume the workflow from a [specific step ID](/docs/workflows/snapshots#retrieving-snapshots), restoring the exact state captured in that snapshot. [Snapshots](/docs/workflows/snapshots)are stored in your configured storage provider and across deployments and application restarts. 
+
+## Pausing a workflow with suspend()​
+
+Use `suspend()`to pause workflow execution at a specific step. You can define a suspend condition in the step’s `execute`block using values from `resumeData`. 
+
+- If the condition isn’t met, the workflow pauses and returns suspend().
+- If the condition is met, the workflow continues with the remaining logic in the step.
+
+src/mastra/workflows/test-workflow.ts 
+```
+const step1 = createStep({  id: "step-1",  inputSchema: z.object({    userEmail: z.string()  }),  outputSchema: z.object({    output: z.string()  }),  resumeSchema: z.object({    approved: z.boolean()  }),  execute: async ({ inputData, resumeData, suspend }) => {    const { userEmail } = inputData;    const { approved } = resumeData ?? {};    if (!approved) {      return await suspend({});    }    return {      output: `Email sent to ${userEmail}`    };  }});export const testWorkflow = createWorkflow({  id: "test-workflow",  inputSchema: z.object({    userEmail: z.string()  }),  outputSchema: z.object({    output: z.string()  })})  .then(step1)  .commit();
+```
+
+## Restarting a workflow with resume()​
+
+Use `resume()`to restart a suspended workflow from the step where it paused. To satisfy the step’s suspend condition, pass a value using `resumeData`that matches the step's `resumeSchema`, allowing execution to continue from the suspended step. 
+
+```
+const workflow = mastra.getWorkflow("testWorkflow");const run = await workflow.createRunAsync();await run.start({  inputData: {    userEmail: "alex@example.com"  }});const handleResume = async () => {  const result = await run.resume({    step: 'step-1',    resumeData: { approved: true }  });};
+```
+
+You can resume a suspended workflow using different triggers, including [human input](/docs/workflows/human-in-the-loop), external events from your application, or time-based conditions. 
+
+```
+const handleResume = async () => {  const result = await run.resume({    step: 'step-1',    resumeData: { approved: true }  });};const midnight = new Date();midnight.setUTCHours(24, 0, 0, 0);setTimeout(handleResume, midnight.getTime() - Date.now());
+```
+
+## Identifying suspended executions​
+
+When a workflow is suspended, it restarts from the step where it paused. You can check the workflow’s `status`to confirm it's suspended, and use `suspended`to identify the paused step or [nested workflow](/docs/workflows/overview#workflows-as-steps). 
+
+```
+const workflow = mastra.getWorkflow("testWorkflow");const run = await workflow.createRunAsync();const result = await run.start({  inputData: {    userEmail: "alex@example.com"  }});if (result.status === "suspended") {  console.log(result.suspended[0]);  await run.resume({    step: result.suspended[0],    resumeData: { approved: true }  });}
+```
+
+**Example output**
+
+The `suspended`array contains the IDs of any suspended workflows and steps from the run. These can be passed to the `step`parameter when calling `resume()`to target and resume the suspended execution path. 
+
+```
+[ 'nested-workflow', 'step-1' ]
+```
+
+## Sleep & Events​
+
+Sleep and event methods can be used to pause execution at the workflow level, which sets the status to `waiting`. By comparison, `suspend()`pauses execution within a specific step and sets the status to `suspended`. 
+
+**Available methods:**
+
+- .sleep(): Pause for a specified number of milliseconds
+- .sleepUntil() : Pause until a specific date
+- .waitForEvent(): Pause until an external event is received
+- .sendEvent() : Send an event to resume a waiting workflow
+
+## Related​
+
+- Control Flow
+- Human-in-the-loop
