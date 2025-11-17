@@ -36,6 +36,20 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ transcription: result.text });
   } catch (error) {
     console.error("Transcription error:", error);
+
+    const isNoTranscriptError =
+      error instanceof Error && error.name === "AI_NoTranscriptGeneratedError";
+
+    if (isNoTranscriptError) {
+      return NextResponse.json(
+        {
+          error:
+            "We couldn't generate a transcription for this audio. Please try again with clearer audio, speaking closer to the mic, or a slightly longer recording.",
+        },
+        { status: 422 }
+      );
+    }
+
     const message =
       error instanceof Error ? error.message : "Transcription failed";
 

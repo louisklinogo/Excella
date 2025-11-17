@@ -1,7 +1,14 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  CopyIcon,
+  DatabaseIcon,
+  GlobeIcon,
+  RefreshCcwIcon,
+  SquareIcon,
+} from "lucide-react";
 import { useRef, useState } from "react";
 
 import {
@@ -9,7 +16,6 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Loader } from "@/components/ai-elements/loader";
 import {
   Message,
   MessageAction,
@@ -36,11 +42,6 @@ import {
   PromptInputFooter,
   PromptInputHeader,
   type PromptInputMessage,
-  PromptInputSelect,
-  PromptInputSelectContent,
-  PromptInputSelectItem,
-  PromptInputSelectTrigger,
-  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -56,35 +57,36 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { VoiceInputButton } from "@/components/ai-elements/voice-input-button";
+import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ai-elements/loader";
 import { LiveWaveform } from "@/components/ui/live-waveform";
-
-const models = [
-  {
-    name: "OpenAI — GPT 4o",
-    value: "openai/gpt-4o",
-  },
-  {
-    name: "Gemini 2.5 Pro",
-    value: "google/gemini-2.5-pro",
-  },
-  {
-    name: "Anthropic — Claude Sonnet 4.5",
-    value: "anthropic/claude-sonnet-4-5",
-  },
-];
+import { cn } from "@/lib/utils";
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
+  const [databaseSources, setDatabaseSources] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const voiceControlsRef = useRef<{
+    start: () => void;
+    confirm: () => void;
+    cancel: () => void;
+  } | null>(null);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [messageBranches, setMessageBranches] = useState<
     Record<string, string[]>
   >({});
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const { messages, sendMessage, status, regenerate } = useChat();
+  const { messages, sendMessage, status, regenerate, stop } = useChat({
+    experimental_throttle: 50,
+  });
+
+  const lastMessage = messages.at(-1);
+  const isVoiceActive = isRecording || isTranscribing;
+  const sourcesActive = webSearch || databaseSources;
 
   const getBranchGroupId = (messageId: string) => {
     const messageIndex = messages.findIndex(
@@ -151,8 +153,8 @@ const ChatBotDemo = () => {
       },
       {
         body: {
-          model,
           webSearch,
+          databaseSources,
         },
       }
     );
@@ -241,12 +243,22 @@ const ChatBotDemo = () => {
                                   <MessageBranchPage />
                                   <MessageBranchNext />
                                 </MessageBranchSelector>
-                                <MessageAction
-                                  label="Retry"
-                                  onClick={handleRegenerateLast}
-                                >
-                                  <RefreshCcwIcon className="size-3" />
-                                </MessageAction>
+                                {status === "streaming" ||
+                                status === "submitted" ? (
+                                  <MessageAction
+                                    label="Stop"
+                                    onClick={() => stop()}
+                                  >
+                                    <SquareIcon className="size-3" />
+                                  </MessageAction>
+                                ) : (
+                                  <MessageAction
+                                    label="Retry"
+                                    onClick={handleRegenerateLast}
+                                  >
+                                    <RefreshCcwIcon className="size-3" />
+                                  </MessageAction>
+                                )}
                                 <MessageAction
                                   label="Copy"
                                   onClick={() =>
@@ -273,7 +285,15 @@ const ChatBotDemo = () => {
                 </div>
               );
             })}
-            {status === "submitted" && <Loader />}
+            {status === "submitted" && lastMessage?.role === "user" && (
+              <Message from="assistant">
+                <MessageContent>
+                  <Shimmer as="p" className="text-muted-foreground text-sm">
+                    Thinking...
+                  </Shimmer>
+                </MessageContent>
+              </Message>
+            )}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -285,73 +305,162 @@ const ChatBotDemo = () => {
           onSubmit={handleSubmit}
         >
           <PromptInputHeader>
-            <PromptInputAttachments>
-              {(attachment) => <PromptInputAttachment data={attachment} />}
-            </PromptInputAttachments>
+            {!isVoiceActive && (
+              <PromptInputAttachments>
+                {(attachment) => <PromptInputAttachment data={attachment} />}
+              </PromptInputAttachments>
+            )}
           </PromptInputHeader>
           <PromptInputBody>
-            {isRecording && audioStream ? (
-              <div className="flex h-[64px] w-full items-center justify-center px-6">
-                <LiveWaveform
-                  audioStream={audioStream}
-                  barCount={120}
-                  className="w-full"
-                  maxHeight={40}
-                  minHeight={12}
-                />
-              </div>
-            ) : (
-              <PromptInputTextarea
-                onChange={(e) => setInput(e.target.value)}
-                ref={textareaRef}
-                value={input}
-              />
-            )}
+            <PromptInputTextarea
+              className={cn(isVoiceActive && "opacity-60")}
+              onChange={(e) => setInput(e.target.value)}
+              readOnly={isVoiceActive}
+              ref={textareaRef}
+              value={input}
+            />
           </PromptInputBody>
           <PromptInputFooter>
-            <PromptInputTools>
-              <VoiceInputButton
-                getCurrentText={() => input}
-                onAudioStreamChange={setAudioStream}
-                onRecordingStateChange={setIsRecording}
-                onTranscriptionChange={setInput}
-                textareaRef={textareaRef}
-              />
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
-              <PromptInputButton
-                onClick={() => setWebSearch(!webSearch)}
-                variant={webSearch ? "default" : "ghost"}
-              >
-                <GlobeIcon size={16} />
-                <span>Search</span>
-              </PromptInputButton>
-              <PromptInputSelect
-                onValueChange={(value) => {
-                  setModel(value);
-                }}
-                value={model}
-              >
-                <PromptInputSelectTrigger>
-                  <PromptInputSelectValue />
-                </PromptInputSelectTrigger>
-                <PromptInputSelectContent>
-                  {models.map((option) => (
-                    <PromptInputSelectItem
-                      key={option.value}
-                      value={option.value}
+            {isVoiceActive ? (
+              <PromptInputTools className="w-full gap-2">
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionAddAttachments />
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+                <div className="flex flex-1 items-center gap-2">
+                  <div className="flex-1">
+                    {audioStream && isRecording ? (
+                      <LiveWaveform
+                        audioStream={audioStream}
+                        barCount={120}
+                        className="w-full"
+                        maxHeight={32}
+                        minHeight={8}
+                      />
+                    ) : (
+                      <div className="h-[2px] w-full rounded bg-muted" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      aria-label="Cancel recording"
+                      className="h-7 w-7 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40"
+                      onClick={() => {
+                        setIsRecording(false);
+                        voiceControlsRef.current?.cancel();
+                      }}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
                     >
-                      {option.name}
-                    </PromptInputSelectItem>
-                  ))}
-                </PromptInputSelectContent>
-              </PromptInputSelect>
-            </PromptInputTools>
-            <PromptInputSubmit disabled={!(input || status)} status={status} />
+                      <span className="text-sm">✕</span>
+                    </Button>
+                    <Button
+                      aria-label="Confirm recording"
+                      className="h-7 w-7 rounded-full border-none bg-transparent shadow-none hover:bg-accent/60"
+                      disabled={isTranscribing}
+                      onClick={() => {
+                        if (isTranscribing) {
+                          return;
+                        }
+                        setIsTranscribing(true);
+                        setIsRecording(false);
+                        voiceControlsRef.current?.confirm();
+                      }}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      {isTranscribing ? (
+                        <Loader size={14} />
+                      ) : (
+                        <span className="text-base">✓</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </PromptInputTools>
+            ) : (
+              <>
+                <PromptInputTools>
+                  <PromptInputActionMenu>
+                    <PromptInputActionMenuTrigger />
+                    <PromptInputActionMenuContent>
+                      <PromptInputActionAddAttachments />
+                    </PromptInputActionMenuContent>
+                  </PromptInputActionMenu>
+                  <div
+                    className={cn(
+                      "inline-flex items-center gap-0.5 rounded-full border px-1 py-0.5 text-[11px]",
+                      sourcesActive
+                        ? "border-accent bg-accent/10"
+                        : "bg-muted"
+                    )}
+                  >
+                    <Button
+                      aria-label="Toggle web sources"
+                      className={cn(
+                        "h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/60",
+                        webSearch && "bg-accent text-accent-foreground"
+                      )}
+                      onClick={() => setWebSearch(!webSearch)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <GlobeIcon className="size-3" />
+                    </Button>
+                    <Button
+                      aria-label="Toggle database sources"
+                      className={cn(
+                        "h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40",
+                        databaseSources && "bg-accent text-accent-foreground"
+                      )}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setDatabaseSources(!databaseSources)}
+                    >
+                      <DatabaseIcon className="size-3" />
+                    </Button>
+                    <span className="flex items-center gap-0.5 px-1 text-muted-foreground">
+                      Sources
+                      <ChevronRightIcon className="size-3" />
+                    </span>
+                  </div>
+                </PromptInputTools>
+                <div className="flex items-center gap-1">
+                  <VoiceInputButton
+                    getCurrentText={() => input}
+                    onControlsReady={(controls) => {
+                      voiceControlsRef.current = controls;
+                    }}
+                    onAudioStreamChange={setAudioStream}
+                    onRecordingStateChange={setIsRecording}
+                    onTranscriptionChange={setInput}
+                    onTranscriptionStatusChange={(status) => {
+                      if (status === "processing") {
+                        setIsTranscribing(true);
+                      }
+                      if (
+                        status === "idle" ||
+                        status === "success" ||
+                        status === "error"
+                      ) {
+                        setIsTranscribing(false);
+                      }
+                    }}
+                    textareaRef={textareaRef}
+                  />
+                  <PromptInputSubmit
+                    disabled={!(input || status)}
+                    status={status}
+                  />
+                </div>
+              </>
+            )}
           </PromptInputFooter>
         </PromptInput>
       </div>
