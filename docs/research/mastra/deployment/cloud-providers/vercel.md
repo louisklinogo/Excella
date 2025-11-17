@@ -1,0 +1,83 @@
+# VercelDeployer | Deployment
+
+Learn how to deploy a Mastra application to Vercel using the Mastra VercelDeployer
+
+Source: https://mastra.ai/docs/deployment/cloud-providers/vercel-deployer
+
+---
+
+# VercelDeployer
+
+The `VercelDeployer`class handles deployment of standalone Mastra applications to Vercel. It manages configuration, deployment, and extends the base [Deployer](/reference/deployer/)class with Vercel specific functionality. 
+
+## Installation​
+
+```
+npm install @mastra/deployer-vercel@latest
+```
+
+## Usage example​
+
+src/mastra/index.ts 
+```
+import { Mastra } from "@mastra/core/mastra";import { VercelDeployer } from "@mastra/deployer-vercel";export const mastra = new Mastra({  // ...  deployer: new VercelDeployer(),});
+```
+
+> See the VercelDeployer API reference for all available configuration options.
+
+### Optional overrides​
+
+The Vercel deployer can write a few high‑value settings into the Vercel Output API function config ( `.vc-config.json`): 
+
+- maxDuration?: number — Function execution timeout (seconds)
+- memory?: number — Function memory allocation (MB)
+- regions?: string[] — Regions (e.g. ['sfo1','iad1'])
+
+Example: 
+
+src/mastra/index.ts 
+```
+deployer: new VercelDeployer({  maxDuration: 600,  memory: 1536,  regions: ["sfo1", "iad1"],});
+```
+
+## Continuous integration​
+
+After connecting your Mastra project’s Git repository to Vercel, update the project settings. In the Vercel dashboard, go to **Settings**> **Build and Deployment**, and under **Framework settings**, set the following: 
+
+- Build command: npm run build (optional)
+
+### Environment variables​
+
+Before your first deployment, make sure to add any environment variables used by your application. For example, if you're using OpenAI as the LLM, you'll need to set `OPENAI_API_KEY`in your Vercel project settings. 
+
+> See Environment variables for more details.
+
+Your project is now configured with automatic deployments which occur whenever you push to the configured branch of your GitHub repository. 
+
+## Manual deployment​
+
+Manual deployments are also possible using the [Vercel CLI](https://vercel.com/docs/cli). With the Vercel CLI installed run the following from your project root to deploy your application. 
+
+```
+npm run build && vercel --prod --prebuilt --archive=tgz
+```
+
+> You can also run vercel dev from your project root to test your Mastra application locally.
+
+## Build output​
+
+The build output for Mastra applications using the `VercelDeployer`includes all agents, tools, and workflows in your project, along with Mastra specific files required to run your application on Vercel. 
+
+```
+.vercel/├── output/│   ├── functions/│   │   └── index.func/│   │       └── index.mjs│   └── config.json└── package.json
+```
+
+The `VercelDeployer`automatically generates a `config.json`configuration file in `.vercel/output`with the following settings: 
+
+```
+{  "version": 3,  "routes": [    {      "src": "/(.*)",      "dest": "/"    }  ]}
+```
+
+## Next steps​
+
+- Mastra Client SDK

@@ -1,5 +1,6 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
+import { createModel, type ModelFactoryOptions } from "@excella/core";
+import type { ModelProvider } from "@excella/core/model-config";
 
 import { askForPlanApprovalTool } from "../tools/ask-for-plan-approval-tool";
 import { sendEmailTool } from "../tools/email-tool";
@@ -8,29 +9,25 @@ import { proposeEmailTool } from "../tools/propose-email-tool";
 import { requestInputTool } from "../tools/request-input";
 import { updateTodosTool } from "../tools/update-todos-tool";
 
-const getAnthropicModel = (modelId: string) => {
-  const userApiKey = process.env.ANTHROPIC_API_KEY;
-  const baseURL =
-    process.env.ANTHROPIC_BASE_URL ||
-    "https://anthropic.tsai.assistant-ui.com/v1";
-  const tsaiApiKey = process.env.TSAI_API_KEY;
+const getAgentModelOptions = (): ModelFactoryOptions => {
+  const provider =
+    (process.env.HITL_AGENT_PROVIDER as ModelProvider | undefined) ??
+    (process.env.MODEL_PROVIDER as ModelProvider | undefined);
 
-  if (userApiKey) {
-    const anthropic = createAnthropic({ apiKey: userApiKey });
-    return anthropic(modelId);
+  const modelId =
+    process.env.HITL_AGENT_MODEL_ID ?? process.env.MODEL_ID ?? undefined;
+
+  const options: ModelFactoryOptions = {};
+
+  if (provider) {
+    options.provider = provider;
   }
 
-  if (!tsaiApiKey) {
-    throw new Error(
-      "TSAI_API_KEY is required when using the proxy. Please set it in your .env file."
-    );
+  if (modelId) {
+    options.modelId = modelId;
   }
 
-  const anthropic = createAnthropic({
-    baseURL,
-    apiKey: tsaiApiKey,
-  });
-  return anthropic(modelId);
+  return options;
 };
 
 export const humanInTheLoopAgent = new Agent({
@@ -54,7 +51,7 @@ export const humanInTheLoopAgent = new Agent({
 
       Your goal: Complete tasks effectively while ensuring the user maintains full control through explicit approval at each stage.
 `,
-  model: getAnthropicModel("claude-sonnet-4-20250514"),
+  model: createModel(getAgentModelOptions()),
   tools: {
     updateTodosTool,
     askForPlanApprovalTool,
