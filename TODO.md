@@ -57,3 +57,11 @@ This TODO focuses on the next steps for the Excel Context Manager and agent inte
   - Use `@excella/core/excel/*` types and helpers.
   - Implement host-specific gateways and memory repositories.
   - Wire them into Mastra agents/tools.
+
+## 8. Excel snapshot scopes and sheet analysis
+
+- [ ] Add a `scope` concept to the Excel snapshot pipeline (e.g. `"selection" | "region" | "sheet"`) and thread it through `SelectionContext` and snapshot tools.
+- [ ] Implement surrounding-region behavior in `OfficeJsExcelGateway` so a single-cell selection expands to the contiguous non-empty block (with row/column caps) for previews.
+- [ ] Implement a full-sheet / `getUsedRange()` mode that samples the used range with configurable row/column caps for "analyze sheet" prompts.
+- [ ] Enrich `ExcelContextSnapshot` with per-column metadata (types, non-empty counts, basic aggregates, top-K categories) derived from the preview data.
+- [ ] Expose the new scopes and enriched snapshot via updated tools (e.g. `excel_context.get_snapshot`) and add an explicit "analyze sheet" path in `excelAgent` that uses the sheet-level snapshot.

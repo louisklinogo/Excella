@@ -15,34 +15,18 @@ export class OfficeJsExcelGateway implements ExcelGateway {
       const workbook = context.workbook;
 
       const worksheets = workbook.worksheets;
-      worksheets.load([
-        "items/name",
-        "items/id",
-        "items/position",
-        "items/visibility",
-      ]);
+      // Load all worksheet items so core properties (id, name, position, visibility)
+      // are guaranteed to be available when we map them.
+      worksheets.load("items");
 
       const tables = workbook.tables;
-      tables.load([
-        "items/name",
-        "items/id",
-        "items/worksheet/name",
-        "items/address",
-        "items/headerRowRange/address",
-        "items/dataBodyRange/address",
-        "items/showTotals",
-        "items/columns/name",
-        "items/columns/index",
-        "items/columns/range/address",
-      ]);
+      // Load all table items to ensure header/data ranges and column metadata
+      // are available without additional load/sync calls.
+      tables.load("items");
 
       const names = workbook.names;
-      names.load([
-        "items/name",
-        "items/comment",
-        "items/worksheet/name",
-        "items/address",
-      ]);
+      // Load all named-range items for name/address/comment access.
+      names.load("items");
 
       await context.sync();
 
@@ -80,6 +64,8 @@ export class OfficeJsExcelGateway implements ExcelGateway {
     includeFormulas?: boolean
   ): Promise<DataPreview> {
     return Excel.run(async (context) => {
+      const worksheetName = selection?.worksheetName ?? "Unknown worksheet";
+
       const { primaryRange, secondaryRanges } = resolvePreviewRanges(
         context,
         selection,
@@ -105,6 +91,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
           ? null
           : toRangeSample(
               primaryRange,
+              worksheetName,
               options.maxPrimaryRows,
               options.maxPrimaryColumns,
               true,
@@ -114,6 +101,7 @@ export class OfficeJsExcelGateway implements ExcelGateway {
       const secondarySamples: RangeSample[] = secondaryRanges.map((range) =>
         toRangeSample(
           range,
+          worksheetName,
           options.maxSecondaryRows,
           options.maxSecondaryColumns,
           false,
@@ -289,6 +277,7 @@ const resolvePreviewRanges = (
 
 const toRangeSample = (
   range: Excel.Range,
+  worksheetName: string,
   maxRows: number,
   maxColumns: number,
   hasHeaders: boolean,
@@ -339,8 +328,6 @@ const toRangeSample = (
       return "value";
     })
   );
-
-  const worksheetName = range.worksheet.name;
   const address = range.address;
 
   return {

@@ -1,6 +1,6 @@
-import { createModel } from "@excella/core";
-import { xai, type XaiProviderOptions } from "@ai-sdk/xai";
+import { type XaiProviderOptions, xai } from "@ai-sdk/xai";
 import { Daytona } from "@daytonaio/sdk";
+import { createModel } from "@excella/core";
 import { createTool } from "@mastra/core/tools";
 import { generateObject, generateText, stepCountIs } from "ai";
 import Exa from "exa-js";
@@ -56,6 +56,14 @@ const getExaClient = (): Exa => {
   return new Exa(apiKey);
 };
 
+const getFaviconUrl = (targetUrl: string): string => {
+  try {
+    return `https://www.google.com/s2/favicons?domain=${new URL(targetUrl).hostname}&sz=128`;
+  } catch {
+    return "";
+  }
+};
+
 const runCode = async (code: string, installLibs: string[] = []) => {
   const apiKey = process.env.DAYTONA_API_KEY;
 
@@ -75,7 +83,9 @@ const runCode = async (code: string, installLibs: string[] = []) => {
   });
 
   if (installLibs.length > 0) {
-    await sandbox.process.executeCommand(`pip install ${installLibs.join(" ")}`);
+    await sandbox.process.executeCommand(
+      `pip install ${installLibs.join(" ")}`
+    );
   }
 
   const result = await sandbox.process.codeRun(code);
@@ -89,7 +99,7 @@ const searchWeb = async (
   query: string,
   category?: SearchCategory,
   includeDomains?: string[]
-) => {
+): Promise<SearchResult[]> => {
   const exa = getExaClient();
 
   try {
@@ -108,23 +118,81 @@ const searchWeb = async (
         : {}),
     });
 
-    const mappedResults = results.map(
-      (r) =>
-        ({
-          title: (r.title as string | undefined) ?? "",
-          url: r.url as string,
-          content: (r.text as string | undefined) ?? "",
-          publishedDate: (r.publishedDate as string | undefined) ?? "",
-          favicon:
-            (r.favicon as string | undefined) ??
-            `https://www.google.com/s2/favicons?domain=${new URL(r.url as string).hostname}&sz=128`,
-        }) satisfies SearchResult
-    );
+    if (results.length > 0) {
+      const mappedResults = results.map(
+        (r) =>
+          ({
+            title: (r.title as string | undefined) ?? "",
+            url: r.url as string,
+            content: (r.text as string | undefined) ?? "",
+            publishedDate: (r.publishedDate as string | undefined) ?? "",
+            favicon:
+              (r.favicon as string | undefined) ??
+              getFaviconUrl(r.url as string),
+          }) satisfies SearchResult
+      );
 
-    return mappedResults;
+      return mappedResults;
+    }
   } catch (error) {
-    console.error("Error in searchWeb:", error);
-    return [] as SearchResult[];
+    console.error("Exa error in searchWeb, falling back to Firecrawl:", error);
+  }
+
+  try {
+    const firecrawl = await getFirecrawlClient();
+
+    const sources: ("web" | "news")[] = [];
+
+    if (category === SearchCategory.NEWS) {
+      sources.push("news", "web");
+    } else {
+      sources.push("web");
+    }
+
+    const firecrawlData = await firecrawl.search(query, {
+      sources,
+      limit: 8,
+    });
+
+    const results: SearchResult[] = [];
+
+    if (Array.isArray((firecrawlData as any).web)) {
+      for (const item of (firecrawlData as any).web) {
+        const url = (item.url ?? "") as string;
+        if (!url) continue;
+
+        results.push({
+          title: (item.title as string | undefined) ?? "",
+          url,
+          content: (item.description as string | undefined) ?? "",
+          publishedDate: "",
+          favicon: getFaviconUrl(url),
+        });
+      }
+    }
+
+    if (
+      category === SearchCategory.NEWS &&
+      Array.isArray((firecrawlData as any).news)
+    ) {
+      for (const item of (firecrawlData as any).news) {
+        const url = (item.url ?? "") as string;
+        if (!url) continue;
+
+        results.push({
+          title: (item.title as string | undefined) ?? "",
+          url,
+          content: (item.snippet as string | undefined) ?? "",
+          publishedDate: (item.date as string | undefined) ?? "",
+          favicon: getFaviconUrl(url),
+        });
+      }
+    }
+
+    return results;
+  } catch (fallbackError) {
+    console.error("Firecrawl fallback error in searchWeb:", fallbackError);
+    return [];
   }
 };
 
@@ -373,10 +441,7 @@ Plan Guidelines:
       description:
         "Search X (formerly Twitter) posts for recent information and discussions",
       inputSchema: z.object({
-        query: z
-          .string()
-          .describe("The search query for X posts")
-          .max(150),
+        query: z.string().describe("The search query for X posts").max(150),
         startDate: z
           .string()
           .optional()
@@ -398,9 +463,7 @@ Plan Guidelines:
         maxResults: z
           .number()
           .optional()
-          .describe(
-            "Maximum number of search results to return (default 15)"
-          ),
+          .describe("Maximum number of search results to return (default 15)"),
       }),
       async execute({
         query,
@@ -462,8 +525,7 @@ Plan Guidelines:
                 try {
                   const tweetUrl =
                     link.sourceType === "url" ? (link.url as string) : "";
-                  const tweetId =
-                    tweetUrl.match(/\/status\/(\d+)/)?.[1] || "";
+                  const tweetId = tweetUrl.match(/\/status\/(\d+)/)?.[1] || "";
 
                   const tweetData = await getTweet(tweetId);
                   if (!tweetData) return null;

@@ -1,11 +1,15 @@
 import {
   type AgentMemoryRepository,
+  type ContextDetailOptions,
   type ContextManager,
-  ContextUpdater,
   DefaultContextManager,
   type MetaProvider,
 } from "@excella/core/excel/context-manager";
-import type { ContextMeta } from "@excella/core/excel/context-snapshot";
+import { ContextUpdater } from "@excella/core/excel/context-updater";
+import type {
+  ContextMeta,
+  ExcelContextSnapshot,
+} from "@excella/core/excel/context-snapshot";
 import type {
   DataPreviewOptions,
   ExcelGateway,
@@ -74,4 +78,63 @@ export const createExcelContextEnvironment = (): ContextEnvironment => {
     excelGateway,
     memoryRepository,
   };
+};
+
+const isExcelHost = (): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (typeof Office === "undefined" || !Office.context) {
+    // eslint-disable-next-line no-console
+    console.log("[excel-context] Office.js not available; not in Excel host.");
+    return false;
+  }
+
+  const host = Office.context.host;
+  // eslint-disable-next-line no-console
+  console.log("[excel-context] Detected Office host:", host);
+
+  return host === Office.HostType.Excel;
+};
+
+export const tryGetExcelContextSnapshot = async (
+  options?: ContextDetailOptions
+): Promise<ExcelContextSnapshot | null> => {
+  if (!isExcelHost()) {
+    return null;
+  }
+
+  try {
+    // eslint-disable-next-line no-console
+    console.log("[excel-context] Building Excel context snapshot...");
+    const { contextManager } = createExcelContextEnvironment();
+    const snapshot = await contextManager.getSnapshot(options);
+    // eslint-disable-next-line no-console
+    console.log("[excel-context] Snapshot created.", {
+      worksheetCount: snapshot.workbook.worksheetCount,
+      hasSelection: snapshot.selection !== null,
+    });
+    return snapshot;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    if (error && typeof error === "object") {
+      const err = error as {
+        name?: string;
+        message?: string;
+        code?: string;
+        debugInfo?: unknown;
+      };
+
+      console.error("[excel-context] Failed to build snapshot", {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        debugInfo: err.debugInfo,
+      });
+    } else {
+      console.error("[excel-context] Failed to build snapshot", error);
+    }
+    return null;
+  }
 };

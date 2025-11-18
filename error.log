@@ -1,30 +1,63 @@
- ⚠ ./node_modules/.bun/@react-email+render@1.4.0+2b5434204782a989/node_modules/@react-email/render/dist/node
-Package prettier can't be external
-The request prettier/plugins/html matches serverExternalPackages (or the default list).
-The request could not be resolved by Node.js from the project directory.
-Packages that should be external need to be installed in the project directory, so they can be resolved from the output files.
-Try to install it into the project directory by running npm install prettier from the project directory.
 
 
- ⚠ ./node_modules/.bun/@react-email+render@1.4.0+2b5434204782a989/node_modules/@react-email/render/dist/node
-Package prettier can't be external
-The request prettier/standalone matches serverExternalPackages (or the default list).
-The request could not be resolved by Node.js from the project directory.
-Packages that should be external need to be installed in the project directory, so they can be resolved from the output files.
-Try to install it into the project directory by running npm install prettier from the project directory.
+paco@paco MINGW64 ~/Projects/Excella (master)
+$ bun run dev
+$ next dev apps/ai-chatbot --turbopack
+   ▲ Next.js 16.0.3 (Turbopack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.100.228:3000
+   - Environments: .env.local
 
-
-Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+ ✓ Starting...
+ ✓ Ready in 7s
+ ○ Compiling / ...
+ GET /?_host_Info=Excel$Win32$16.01$en-US$$$$0 200 in 47s (compile: 45s, render: 1659ms)
+ GET / 200 in 47s (compile: 42s, render: 4.8s)
+ ✓ Compiled in 1167ms
+ ○ Compiling /api/chat ...
 Mastra telemetry is deprecated and will be removed on the Nov 4th release. Instead use AI Tracing. More info can be found here: https://github.com/mastra-ai/mastra/issues/8577 and here: https://mastra.ai/en/docs/observability/ai-tracing/overview
-The `format: "aisdk"` is deprecated in stream/generate options. Use the @mastra/ai-sdk package instead. See https://mastra.ai/en/docs/frameworks/agentic-uis/ai-sdk#streaming
-Tool input validation failed for 'updateTodosTool' {
-  toolName: 'updateTodosTool',
-  errors: { _errors: [], insertAt: { _errors: [Array] } },
-  args: {
-    new: [ 'Acknowledge greeting and ask how I can help.' ],
-    inProgress: [],
-    done: [],
-    clearPreviouslyDone: false
-  }
-}
- POST /api/chat 200 in 14.2s (compile: 9.0s, render: 5.2s)
+[api/chat] excelSnapshot present: true
+[mastra-chat] AI SDK part {"type":"start"}
+[mastra-chat] AI SDK part {"type":"start-step"}
+[mastra-chat] AI SDK part {"type":"tool-input-start","toolCallId":"02BfxocxIzCoyXBX","toolName":"agent-chatAgent","dynamic":false}
+[mastra-chat] AI SDK part {"type":"tool-input-delta","toolCallId":"02BfxocxIzCoyXBX","inputTextDelta":"{\"prompt\":\"hi\"}"}
+[mastra-chat] AI SDK part {"type":"tool-input-available","toolCallId":"02BfxocxIzCoyXBX","toolName":"agent-chatAgent","input":{"prompt":"hi"},"providerMetadata":{"google":{"thoughtSignature":"CiQB0e2Kbw85/byPJou/YRuxXPFR/dJ9ZGPKPsiXHA5vGi4GSmoKdwHR7Ypvf8Rv/p1udAPwwirVkZCk1IWuOPl4ceFB3Aeb7wtJlypDtFIPq7fXat5BJDvtFfC5gyKeVZiO0J9TVNIvyYZ4AENGhSLRCulHRXEPlbUEU1WXtxSI5yMQzEd5x9mb4UAQoQtFGeXrRbLYJwiuKHEw28/TCqsBAdHtim8tCAsfG684tEBqrnRasICso6SqlVtrswTXnras3SNY9usIgUQsLjWbwsrfXcARiaXbGaBWuDlViv+ic1EVgY+ZqL6M8/d4Fh9hFTtqVUU7Ytk9/jBMwIlPNkfBfX6i7eEPg19tcLchfDKI568PqHGiA4f/yHG04aCsLXSuutP9MwdIgSlWvMUxmDwI6ayu01b9RzBytEF/4y7SUrhr9JPututBJXtT"}}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"67554c32-db03-4be0-b20e-c3abdf6661ff","data":{"id":"Excella Chat Agent","object":null,"finishReason":null,"usage":null,"warnings":[],"text":"","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:36:12.687Z","modelId":"","messages":[]},"steps":[],"status":"running"}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"67554c32-db03-4be0-b20e-c3abdf6661ff","data":{"id":"Excella Chat Agent","object":null,"finishReason":null,"usage":null,"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data or workbook today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:36:12.687Z","modelId":"","messages":[]},"steps":[],"status":"running"}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"67554c32-db03-4be0-b20e-c3abdf6661ff","data":{"id":"Excella Chat Agent","object":null,"finishReason":null,"usage":{"inputTokens":145,"outputTokens":33,"totalTokens":206,"reasoningTokens":28},"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data or workbook today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:36:12.687Z","modelId":"","messages":[]},"steps":[{"id":"Excella Chat Agent","object":null,"finishReason":"stop","usage":{"inputTokens":145,"outputTokens":33,"totalTokens":206,"reasoningTokens":28},"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data or workbook today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:36:12.687Z","modelId":"","messages":[]},"steps":[],"status":"running","stepType":"initial","reasoningText":"","staticToolCalls":[],"dynamicToolCalls":[],"staticToolResults":[],"dynamicToolResults":[]}],"status":"running"}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"67554c32-db03-4be0-b20e-c3abdf6661ff","data":{"id":"Excella Chat Agent","object":null,"finishReason":"stop","usage":{"inputTokens":145,"outputTokens":33,"totalTokens":206,"reasoningTokens":28},"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data or workbook today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:36:12.687Z","modelId":"","messages":[]},"steps":[{"id":"Excella Chat Agent","object":null,"finishReason":"stop","usage":{"inputTokens":145,"outputTokens":33,"totalTokens":206,"reasoningTokens":28},"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data or workbook today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:36:12.687Z","modelId":"","messages":[]},"steps":[],"status":"running","stepType":"initial","reasoningText":"","staticToolCalls":[],"dynamicToolCalls":[],"staticToolResults":[],"dynamicToolResults":[]}],"status":"finished"}}
+[mastra-chat] AI SDK part {"type":"tool-output-available","toolCallId":"02BfxocxIzCoyXBX","output":{"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data or workbook today?","subAgentThreadId":"41654a05-7cf2-4820-b694-74c0c17815f2","subAgentResourceId":"excella-orchestrator-chatAgent"}}
+[mastra-chat] AI SDK part {"type":"finish-step"}
+[mastra-chat] AI SDK part {"type":"start-step"}
+[mastra-chat] AI SDK part {"type":"text-start","id":"0"}
+[mastra-chat] AI SDK part {"type":"text-delta","id":"0","delta":"Hello! I'"}
+[mastra-chat] AI SDK part {"type":"text-delta","id":"0","delta":"m Excella, your data analyst. I live right here in your spreadsheets."}
+[mastra-chat] AI SDK part {"type":"text-delta","id":"0","delta":"\n\nHow can I help you with your data or workbook today?"}
+[mastra-chat] AI SDK part {"type":"text-end","id":"0"}
+[mastra-chat] AI SDK part {"type":"finish-step"}
+[mastra-chat] AI SDK part {"type":"finish"}
+ POST /api/chat 200 in 27.1s (compile: 22.3s, render: 4.8s)
+ ✓ Compiled in 603ms
+ ✓ Compiled in 322ms
+[api/chat] excelSnapshot present: false
+[mastra-chat] AI SDK part {"type":"start"}
+[mastra-chat] AI SDK part {"type":"start-step"}
+[mastra-chat] AI SDK part {"type":"tool-input-start","toolCallId":"JuiCrBBG0GJrdM5E","toolName":"agent-chatAgent","dynamic":false}
+[mastra-chat] AI SDK part {"type":"tool-input-delta","toolCallId":"JuiCrBBG0GJrdM5E","inputTextDelta":"{\"prompt\":\"hi\"}"}
+[mastra-chat] AI SDK part {"type":"tool-input-available","toolCallId":"JuiCrBBG0GJrdM5E","toolName":"agent-chatAgent","input":{"prompt":"hi"},"providerMetadata":{"google":{"thoughtSignature":"CiQB0e2Kb513tMMB9jaT9TuIwnz7WDQkiTfyWWwiHa6Ge0hvpdgKdwHR7YpvorCmSc6Pxx8JzpH93+Yu+ODOlH82SH33W8/9GiYWs5UlTPS1QZxvkUl097uJEJZoBxEskzMU0tcwuynhVUJKgqHjIfbiY/5b5LZ44G98QKepJcXIADjQp1JYge/OxBDQpBhBBROh5bR6bl+ldJUgX98dCqsBAdHtim/zvfLuWUv2QKqJCq6cJUaLNTIAnAmwdKy7F9Hy/ebHermF499nHwU7bwIVCIrvM7afY6B2Eo48uKs9Z7CvKmXTTnKjDn2D/nLWuNCz7cgrGc8J4AYY5Yy/ALI6kTjTnPtZuOvOtSCgtmLYGDd7K1M2YCe+L/1Iy+bd9MQ4JGG8yMXXZx2GI5cBv2TN7Zw3iUOX2eoe4Z7SXgCuSm/DgZ0yKYPoi3Fc"}}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"af08eac2-47f5-4571-92de-d7903c3b26c8","data":{"id":"Excella Chat Agent","object":null,"finishReason":null,"usage":null,"warnings":[],"text":"","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:38:25.506Z","modelId":"","messages":[]},"steps":[],"status":"running"}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"af08eac2-47f5-4571-92de-d7903c3b26c8","data":{"id":"Excella Chat Agent","object":null,"finishReason":null,"usage":null,"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:38:25.506Z","modelId":"","messages":[]},"steps":[],"status":"running"}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"af08eac2-47f5-4571-92de-d7903c3b26c8","data":{"id":"Excella Chat Agent","object":null,"finishReason":null,"usage":{"inputTokens":145,"outputTokens":31,"totalTokens":204,"reasoningTokens":28},"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:38:25.506Z","modelId":"","messages":[]},"steps":[{"id":"Excella Chat Agent","object":null,"finishReason":"stop","usage":{"inputTokens":145,"outputTokens":31,"totalTokens":204,"reasoningTokens":28},"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:38:25.506Z","modelId":"","messages":[]},"steps":[],"status":"running","stepType":"initial","reasoningText":"","staticToolCalls":[],"dynamicToolCalls":[],"staticToolResults":[],"dynamicToolResults":[]}],"status":"running"}}
+[mastra-chat] AI SDK part {"type":"data-tool-agent","id":"af08eac2-47f5-4571-92de-d7903c3b26c8","data":{"id":"Excella Chat Agent","object":null,"finishReason":"stop","usage":{"inputTokens":145,"outputTokens":31,"totalTokens":204,"reasoningTokens":28},"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:38:25.506Z","modelId":"","messages":[]},"steps":[{"id":"Excella Chat Agent","object":null,"finishReason":"stop","usage":{"inputTokens":145,"outputTokens":31,"totalTokens":204,"reasoningTokens":28},"warnings":[],"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data today?","reasoning":[],"sources":[],"files":[],"toolCalls":[],"toolResults":[],"request":{},"response":{"id":"","timestamp":"2025-11-18T17:38:25.506Z","modelId":"","messages":[]},"steps":[],"status":"running","stepType":"initial","reasoningText":"","staticToolCalls":[],"dynamicToolCalls":[],"staticToolResults":[],"dynamicToolResults":[]}],"status":"finished"}}
+[mastra-chat] AI SDK part {"type":"tool-output-available","toolCallId":"JuiCrBBG0GJrdM5E","output":{"text":"Hello! I'm Excella, your data analyst. I live right here in your spreadsheets.\n\nHow can I help you with your data today?","subAgentThreadId":"55d015ac-2518-4cd9-8996-2b974b6bab49","subAgentResourceId":"excella-orchestrator-chatAgent"}}
+[mastra-chat] AI SDK part {"type":"finish-step"}
+[mastra-chat] AI SDK part {"type":"start-step"}
+[mastra-chat] AI SDK part {"type":"text-start","id":"0"}
+[mastra-chat] AI SDK part {"type":"text-delta","id":"0","delta":"Hello! I'"}
+[mastra-chat] AI SDK part {"type":"text-delta","id":"0","delta":"m Excella, your data analyst. I live right here in your spreadsheets."}
+[mastra-chat] AI SDK part {"type":"text-delta","id":"0","delta":"\n\nHow can I help you with your data today?"}
+[mastra-chat] AI SDK part {"type":"text-end","id":"0"}
+[mastra-chat] AI SDK part {"type":"finish-step"}
+[mastra-chat] AI SDK part {"type":"finish"}
+ POST /api/chat 200 in 4.5s (compile: 204ms, render: 4.3s)
+ ✓ Compiled in 391ms

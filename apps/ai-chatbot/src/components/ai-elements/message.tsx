@@ -27,8 +27,10 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 export const Message = ({ className, from, ...props }: MessageProps) => (
   <div
     className={cn(
-      "group flex w-full max-w-[80%] flex-col gap-2",
-      from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
+      "group flex w-full flex-col gap-2",
+      from === "user"
+        ? "is-user ml-auto max-w-[80%] justify-end"
+        : "is-assistant max-w-full",
       className
     )}
     {...props}
@@ -44,7 +46,7 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit flex-col gap-2 overflow-hidden text-sm",
+      "is-user:dark flex w-fit max-w-full flex-col gap-2 overflow-hidden text-xs sm:text-[13px]",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:text-foreground",
       className
@@ -62,7 +64,7 @@ export const MessageActions = ({
   children,
   ...props
 }: MessageActionsProps) => (
-  <div className={cn("flex items-center gap-1", className)} {...props}>
+  <div className={cn("flex items-center gap-0.5", className)} {...props}>
     {children}
   </div>
 );
@@ -77,7 +79,7 @@ export const MessageAction = ({
   children,
   label,
   variant = "ghost",
-  size = "icon-sm",
+  size = "icon-xs",
   ...props
 }: MessageActionProps) => {
   const button = (
@@ -221,7 +223,11 @@ export const MessageBranchSelector = ({
   ...props
 }: MessageBranchSelectorProps) => (
   <ButtonGroup
-    className="[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md"
+    className={cn(
+      "text-[11px] [&>button]:h-6 [&>button]:px-1 [&>button_svg]:size-3",
+      "[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md",
+      className
+    )}
     orientation="horizontal"
     {...props}
   />
@@ -240,12 +246,12 @@ export const MessageBranchPrevious = ({
       aria-label="Previous branch"
       disabled={totalBranches <= 1}
       onClick={goToPrevious}
-      size="icon-sm"
+      size="icon-xs"
       type="button"
       variant="ghost"
       {...props}
     >
-      {children ?? <ChevronLeftIcon size={14} />}
+      {children ?? <ChevronLeftIcon className="size-3" />}
     </Button>
   );
 };
@@ -264,12 +270,12 @@ export const MessageBranchNext = ({
       aria-label="Next branch"
       disabled={totalBranches <= 1}
       onClick={goToNext}
-      size="icon-sm"
+      size="icon-xs"
       type="button"
       variant="ghost"
       {...props}
     >
-      {children ?? <ChevronRightIcon size={14} />}
+      {children ?? <ChevronRightIcon className="size-3" />}
     </Button>
   );
 };
@@ -288,7 +294,7 @@ export const MessageBranchPage = ({
   return (
     <ButtonGroupText
       className={cn(
-        "border-none bg-transparent text-muted-foreground shadow-none",
+        "border-none bg-transparent px-1 py-0 text-[11px] text-muted-foreground shadow-none",
         className
       )}
       {...props}
@@ -304,7 +310,10 @@ export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "w-full max-w-full break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "[&_p]:break-words [&_li]:break-words [&_code]:break-all",
+        "[&_pre]:block [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:text-[11px]",
+        "[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto",
         className
       )}
       {...props}

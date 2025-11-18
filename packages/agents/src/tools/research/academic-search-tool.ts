@@ -2,7 +2,11 @@ import { createTool } from "@mastra/core/tools";
 import Exa from "exa-js";
 import { z } from "zod";
 
-import { cleanTitle, deduplicateByDomainAndUrl, webResultSchema } from "./common";
+import {
+  cleanTitle,
+  deduplicateByDomainAndUrl,
+  webResultSchema,
+} from "./common";
 
 const academicSearchResultSchema = z.object({
   query: z.string(),
@@ -65,7 +69,7 @@ export const academicSearchTool = createTool({
 
             const cleanSummary = (paper.summary as string).replace(
               /^Summary:\s*/i,
-              "",
+              ""
             );
             const cleanedTitle = cleanTitle(paper.title || "");
 
@@ -90,7 +94,7 @@ export const academicSearchTool = createTool({
             results: [],
           };
         }
-      }),
+      })
     );
 
     return {

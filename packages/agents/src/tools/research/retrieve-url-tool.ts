@@ -21,19 +21,18 @@ export const retrieveUrlTool = createTool({
   description:
     "Retrieve the full content from a URL using Exa AI, with Firecrawl as a fallback. Returns text, title, summary, images, and more.",
   inputSchema: z.object({
-    url: z
-      .string()
-      .url()
-      .describe("The URL to retrieve the information from."),
+    url: z.string().url().describe("The URL to retrieve the information from."),
     includeSummary: z
       .boolean()
       .optional()
-      .describe("Whether to include a summary of the content. Default is true."),
+      .describe(
+        "Whether to include a summary of the content. Default is true."
+      ),
     liveCrawl: z
       .enum(["never", "auto", "preferred"])
       .optional()
       .describe(
-        'Whether to crawl the page immediately. Options: never, auto, preferred. Default is "preferred".',
+        'Whether to crawl the page immediately. Options: never, auto, preferred. Default is "preferred".'
       ),
   }),
   outputSchema: z.object({
@@ -63,9 +62,7 @@ export const retrieveUrlTool = createTool({
       let usingFirecrawl = false;
 
       try {
-        if (!exaApiKey) {
-          usingFirecrawl = true;
-        } else {
+        if (exaApiKey) {
           const exa = new Exa(exaApiKey as string);
 
           result = await exa.getContents([url], {
@@ -81,6 +78,8 @@ export const retrieveUrlTool = createTool({
           ) {
             usingFirecrawl = true;
           }
+        } else {
+          usingFirecrawl = true;
         }
       } catch (exaError) {
         console.error("Exa AI error:", exaError);
@@ -169,7 +168,8 @@ export const retrieveUrlTool = createTool({
       }
 
       const mappedResults = (result!.results as any[]).map((item) => {
-        const content = (item.text as string | undefined) ||
+        const content =
+          (item.text as string | undefined) ||
           (item.summary as string | undefined) ||
           "";
 

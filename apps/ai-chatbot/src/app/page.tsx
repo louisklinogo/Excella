@@ -61,6 +61,7 @@ import {
 import { VoiceInputButton } from "@/components/ai-elements/voice-input-button";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
+import { tryGetExcelContextSnapshot } from "@/lib/excel/context-environment";
 import { cn } from "@/lib/utils";
 
 const ChatBotDemo = () => {
@@ -84,7 +85,6 @@ const ChatBotDemo = () => {
     experimental_throttle: 50,
   });
 
-  const lastMessage = messages.at(-1);
   const isVoiceActive = isRecording || isTranscribing;
   const sourcesActive = webSearch || databaseSources;
 
@@ -114,8 +114,7 @@ const ChatBotDemo = () => {
     ) ?? false;
 
   const isThinking =
-    status === "submitted" ||
-    (status === "streaming" && !lastAssistantHasText);
+    status === "submitted" || (status === "streaming" && !lastAssistantHasText);
 
   const handleRegenerateLast = async () => {
     if (!lastAssistantMessage) {
@@ -144,13 +143,20 @@ const ChatBotDemo = () => {
     await regenerate();
   };
 
-  const handleSubmit = (message: PromptInputMessage) => {
+  const handleSubmit = async (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
 
     if (!(hasText || hasAttachments)) {
       return;
     }
+
+    const excelSnapshot = await tryGetExcelContextSnapshot({
+      includeFormulaSamples: false,
+      includeDependencySummaries: false,
+    });
+
+    const mode: "default" | "research" = webSearch ? "research" : "default";
 
     sendMessage(
       {
@@ -161,6 +167,8 @@ const ChatBotDemo = () => {
         body: {
           webSearch,
           databaseSources,
+          excelSnapshot,
+          mode,
         },
       }
     );
@@ -168,11 +176,11 @@ const ChatBotDemo = () => {
   };
 
   return (
-    <div className="relative mx-auto size-full h-screen max-w-4xl p-6">
-      <div className="flex h-full flex-col">
-        <Conversation className="h-full">
+    <div className="relative flex h-screen w-full flex-col overflow-hidden px-1 py-2 text-[12px] sm:px-2 sm:text-[13px] lg:mx-auto lg:max-w-4xl lg:px-4 lg:py-6 lg:text-[15px]">
+      <div className="flex flex-1 min-h-0 flex-col">
+        <Conversation className="min-h-0">
           <ConversationContent>
-            {messages.map((message) => {
+            {messages.map((message, index) => {
               const isAssistant = message.role === "assistant";
               const isLastAssistant =
                 isAssistant &&
@@ -197,7 +205,7 @@ const ChatBotDemo = () => {
                 : existingBranches;
 
               return (
-                <div key={message.id}>
+                <div key={`${message.id}-${index}`}>
                   {isAssistant && sourceParts.length > 0 && (
                     <Sources>
                       <SourcesTrigger count={sourceParts.length} />
@@ -240,7 +248,7 @@ const ChatBotDemo = () => {
                               <MessageResponse>{branchText}</MessageResponse>
                             </MessageContent>
                             {isLastAssistant && (
-                              <MessageActions>
+                              <MessageActions className="gap-3">
                                 <MessageBranchSelector from={message.role}>
                                   <MessageBranchPrevious />
                                   <MessageBranchPage />
@@ -291,7 +299,10 @@ const ChatBotDemo = () => {
             {isThinking && (
               <Message from="assistant">
                 <MessageContent>
-                  <Shimmer as="p" className="text-muted-foreground text-sm">
+                  <Shimmer
+                    as="p"
+                    className="text-muted-foreground text-[11px]"
+                  >
                     Thinking...
                   </Shimmer>
                 </MessageContent>
@@ -302,7 +313,7 @@ const ChatBotDemo = () => {
         </Conversation>
 
         <PromptInput
-          className="mt-4"
+          className="mt-2 text-[12px] sm:mt-3 sm:text-[13px]"
           globalDrop
           multiple
           onSubmit={handleSubmit}
@@ -325,31 +336,31 @@ const ChatBotDemo = () => {
           </PromptInputBody>
           <PromptInputFooter>
             {isVoiceActive ? (
-              <PromptInputTools className="w-full gap-2">
+              <PromptInputTools className="w-full items-center gap-2">
                 <PromptInputActionMenu>
                   <PromptInputActionMenuTrigger />
                   <PromptInputActionMenuContent>
                     <PromptInputActionAddAttachments />
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
-                <div className="flex flex-1 items-center gap-2">
-                  <div className="flex-1">
+                <div className="flex flex-1 items-center gap-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden">
                     {audioStream && isRecording ? (
                       <LiveWaveform
                         audioStream={audioStream}
-                        barCount={120}
-                        className="w-full"
-                        maxHeight={32}
-                        minHeight={8}
+                        barCount={80}
+                        className="w-full max-w-full"
+                        maxHeight={24}
+                        minHeight={6}
                       />
                     ) : (
                       <div className="h-[2px] w-full rounded bg-muted" />
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       aria-label="Cancel recording"
-                      className="h-7 w-7 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40"
+                      className="h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40"
                       onClick={() => {
                         setIsRecording(false);
                         voiceControlsRef.current?.cancel();
@@ -362,7 +373,7 @@ const ChatBotDemo = () => {
                     </Button>
                     <Button
                       aria-label="Confirm recording"
-                      className="h-7 w-7 rounded-full border-none bg-transparent shadow-none hover:bg-accent/60"
+                      className="h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/60"
                       disabled={isTranscribing}
                       onClick={() => {
                         if (isTranscribing) {
@@ -396,39 +407,39 @@ const ChatBotDemo = () => {
                   </PromptInputActionMenu>
                   <div
                     className={cn(
-                      "inline-flex items-center gap-0.5 rounded-full border px-1 py-0.5 text-[11px]",
+                      "inline-flex items-center gap-0.5 rounded-full border px-0.5 py-0.5 text-[10px] sm:text-[11px]",
                       sourcesActive ? "border-accent bg-accent/10" : "bg-muted"
                     )}
                   >
                     <Button
                       aria-label="Toggle web sources"
                       className={cn(
-                        "h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/60",
+                        "h-4 w-4 rounded-full border-none bg-transparent shadow-none hover:bg-accent/60",
                         webSearch && "bg-accent text-accent-foreground"
                       )}
                       onClick={() => setWebSearch(!webSearch)}
-                      size="icon-sm"
+                      size="icon-xs"
                       type="button"
                       variant="ghost"
                     >
-                      <GlobeIcon className="size-3" />
+                      <GlobeIcon className="size-2.5" />
                     </Button>
                     <Button
                       aria-label="Toggle database sources"
                       className={cn(
-                        "h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40",
+                        "h-4 w-4 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40",
                         databaseSources && "bg-accent text-accent-foreground"
                       )}
                       onClick={() => setDatabaseSources(!databaseSources)}
-                      size="icon-sm"
+                      size="icon-xs"
                       type="button"
                       variant="ghost"
                     >
-                      <DatabaseIcon className="size-3" />
+                      <DatabaseIcon className="size-2.5" />
                     </Button>
-                    <span className="flex items-center gap-0.5 px-1 text-muted-foreground">
+                    <span className="flex items-center gap-0.5 px-0.5 text-muted-foreground">
                       Sources
-                      <ChevronRightIcon className="size-3" />
+                      <ChevronRightIcon className="size-2.5" />
                     </span>
                   </div>
                 </PromptInputTools>
@@ -441,19 +452,20 @@ const ChatBotDemo = () => {
                     }}
                     onRecordingStateChange={setIsRecording}
                     onTranscriptionChange={setInput}
-                    onTranscriptionStatusChange={(status) => {
-                      if (status === "processing") {
+                    onTranscriptionStatusChange={(transcriptionStatus) => {
+                      if (transcriptionStatus === "processing") {
                         setIsTranscribing(true);
                       }
                       if (
-                        status === "idle" ||
-                        status === "success" ||
-                        status === "error"
+                        transcriptionStatus === "idle" ||
+                        transcriptionStatus === "success" ||
+                        transcriptionStatus === "error"
                       ) {
                         setIsTranscribing(false);
                       }
                     }}
                     textareaRef={textareaRef}
+                    size="icon-xs"
                   />
                   <PromptInputSubmit
                     disabled={!(input || status)}

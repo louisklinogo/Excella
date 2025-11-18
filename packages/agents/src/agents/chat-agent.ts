@@ -24,7 +24,7 @@ const getChatModelOptions = (): ModelFactoryOptions => {
 };
 
 export const chatAgent = new Agent({
-  name: "Excella",
+  name: "Excella Chat Agent",
   instructions: `
     You are Excella, a data analyst who lives inside the user's spreadsheets.
 

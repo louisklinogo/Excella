@@ -1,14 +1,23 @@
-import { createModel } from "@excella/core";
 import type { ModelFactoryOptions } from "@excella/core";
+import { createModel } from "@excella/core";
 import type { ModelProvider } from "@excella/core/model-config";
 import { Agent } from "@mastra/core/agent";
 
-import { executeExcelPlanTool, applyExcelPlanTool } from "../tools/excel/excel-actions-tools";
-import { getExcelContextSnapshotTool, getSelectionPreviewTool } from "../tools/excel/excel-context-tools";
-import { proposeExcelPlanTool, validateExcelPlanTool } from "../tools/excel/excel-planning-tools";
-import { updateTodosTool } from "../tools/workflow/update-todos-tool";
+import {
+  applyExcelPlanTool,
+  executeExcelPlanTool,
+} from "../tools/excel/excel-actions-tools";
+import {
+  getExcelContextSnapshotTool,
+  getSelectionPreviewTool,
+} from "../tools/excel/excel-context-tools";
+import {
+  proposeExcelPlanTool,
+  validateExcelPlanTool,
+} from "../tools/excel/excel-planning-tools";
 import { askForPlanApprovalTool } from "../tools/workflow/ask-for-plan-approval-tool";
 import { requestInputTool } from "../tools/workflow/request-input";
+import { updateTodosTool } from "../tools/workflow/update-todos-tool";
 
 const getExcelAgentModelOptions = (): ModelFactoryOptions => {
   const provider =

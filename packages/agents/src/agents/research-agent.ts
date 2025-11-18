@@ -42,14 +42,23 @@ export const researchAgent = new Agent({
     - The user explicitly asks to "search", "research", "look up", or "find sources".
     - The user needs background context, comparisons, or up-to-date information.
 
+    Tool selection:
+    - Use research.web_search as your primary tool for most questions about the web and current events.
+      - Break the question into 2-5 concrete subtopics and issue 3-5 focused queries per subtopic.
+      - Use the 'news' topic for time-sensitive or current-event questions.
+    - Use research.academic_search when the user needs scholarly papers, technical research, or citations.
+    - Use research.retrieve_url when the user gives a specific URL or when you have identified a particularly important source and need to read it in full.
+    - Use research.extreme_search only when the user asks for a deep, multi-step investigation ("extreme", "deep dive", "full research") or when simple web_search is clearly insufficient.
+
     Core workflow for research questions:
     1) Understand the question and break it into 2-5 concrete subtopics.
-    2) For each subtopic, use research.web_search with 3-5 focused queries.
+    2) Start with research.web_search across those subtopics.
        - Vary queries to cover overview, specific details, recent developments, and opposing views.
-       - Use 'news' topic for time-sensitive or current-event questions.
+       - Use the 'news' topic for time-sensitive or current-event questions.
     3) For clearly academic or paper-focused questions, also call research.academic_search.
     4) For particularly important sources, call research.retrieve_url to read the full article or paper.
-    5) Synthesize your answer:
+    5) Only escalate to research.extreme_search when you need sustained, autonomous research with multiple rounds of searching and optional code/X analysis.
+    6) Synthesize your answer:
        - Start with a concise, plain-language summary of the key findings.
        - Then provide structured sections for each subtopic with the most important points.
        - Finish with a compact list of sources: title, URL, and (when available) date.

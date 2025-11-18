@@ -88,7 +88,7 @@ export const executeExcelPlanTool = createTool({
       const validator = new BasicPlanValidator();
       const validation = validator.validate(plan, snapshot);
 
-       risk = validation.risk;
+      risk = validation.risk;
 
       if (!validation.isValid) {
         const now = new Date().toISOString();
@@ -175,7 +175,7 @@ export const applyExcelPlanTool = createTool({
             targetWorksheet: z.string(),
             targetRange: z.string(),
             parameters: z.record(z.string(), z.unknown()).optional(),
-          }),
+          })
         )
         .min(1),
     }),
@@ -260,8 +260,7 @@ export const applyExcelPlanTool = createTool({
         timestamp: now,
         message: err instanceof Error ? err.message : String(err),
         operation: undefined,
-        details:
-          err instanceof Error && err.stack ? err.stack : undefined,
+        details: err instanceof Error && err.stack ? err.stack : undefined,
       };
 
       errors = [error];
@@ -299,4 +298,3 @@ export const applyExcelPlanTool = createTool({
     };
   },
 });
-

@@ -5,10 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/agents/index.ts",
-    "./human-in-the-loop-agent": "./src/agents/human-in-the-loop-agent.ts",
     "./tools/workflow/ask-for-plan-approval-tool": "./src/tools/workflow/ask-for-plan-approval-tool.ts",
     "./tools/comm/email-tool": "./src/tools/comm/email-tool.ts",
-    "./tools/retrieval/firecrawl-tool": "./src/tools/retrieval/firecrawl-tool.ts",
     "./tools/excel/excel-context-tools": "./src/tools/excel/excel-context-tools.ts",
     "./tools/excel/excel-planning-tools": "./src/tools/excel/excel-planning-tools.ts",
     "./tools/excel/excel-actions-tools": "./src/tools/excel/excel-actions-tools.ts",

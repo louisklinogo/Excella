@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -25,11 +25,6 @@ export function LiveWaveform({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | undefined>(undefined);
-
-  const barKeys = useMemo(
-    () => Array.from({ length: barCount }, (_, index) => `bar-${index}`),
-    [barCount]
-  );
 
   useEffect(() => {
     if (!audioStream) {
@@ -83,7 +78,7 @@ export function LiveWaveform({
       {heights.map((height, index) => (
         <div
           className="w-0.5 rounded-full bg-current transition-all duration-75"
-          key={barKeys[index]}
+          key={`bar-${index}`}
           style={{ height: `${height}px` }}
         />
       ))}

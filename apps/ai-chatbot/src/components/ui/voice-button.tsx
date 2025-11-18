@@ -36,18 +36,18 @@ export function VoiceButton({
 }: VoiceButtonProps) {
   const getStateIcon = () => {
     if (state === "recording") {
-      return icon ?? <MicIcon className="size-4 animate-pulse" />;
+      return icon ?? <MicIcon className="size-3 animate-pulse" />;
     }
     if (state === "processing") {
-      return <Loader2Icon className="size-4 animate-spin" />;
+      return <Loader2Icon className="size-3 animate-spin" />;
     }
     if (state === "success") {
-      return <CheckIcon className="size-4" />;
+      return <CheckIcon className="size-3" />;
     }
     if (state === "error") {
-      return <XIcon className="size-4" />;
+      return <XIcon className="size-3" />;
     }
-    return icon ?? <MicIcon className="size-4" />;
+    return icon ?? <MicIcon className="size-3" />;
   };
 
   const isIconOnly = size?.toString().startsWith("icon") && !label && !trailing;

@@ -1,7 +1,7 @@
 import { createTool } from "@mastra/core/tools";
+import { type TavilyClient, tavily } from "@tavily/core";
 import Exa from "exa-js";
 import Parallel from "parallel-web";
-import { tavily, type TavilyClient } from "@tavily/core";
 import { z } from "zod";
 
 import {
@@ -25,7 +25,7 @@ interface SearchStrategy {
       maxResults: number[];
       topics: ("general" | "news")[];
       quality: ("default" | "best")[];
-    },
+    }
   ): Promise<{
     searches: Array<{
       query: string;
@@ -38,7 +38,7 @@ interface SearchStrategy {
 class ParallelSearchStrategy implements SearchStrategy {
   constructor(
     private readonly parallel: Parallel,
-    private readonly firecrawl: Awaited<ReturnType<typeof getFirecrawlClient>>,
+    private readonly firecrawl: Awaited<ReturnType<typeof getFirecrawlClient>>
   ) {}
 
   async search(
@@ -47,7 +47,7 @@ class ParallelSearchStrategy implements SearchStrategy {
       maxResults: number[];
       topics: ("general" | "news")[];
       quality: ("default" | "best")[];
-    },
+    }
   ) {
     const limitedQueries = queries.slice(0, 5);
 
@@ -71,7 +71,7 @@ class ParallelSearchStrategy implements SearchStrategy {
               sources: ["images"],
               limit: 3,
             })
-            .catch(() => ({ images: [] } as any)),
+            .catch(() => ({ images: [] }) as any),
         ]);
 
         const results = (singleResponse?.results || []).map((result: any) => ({
@@ -121,7 +121,7 @@ class TavilySearchStrategy implements SearchStrategy {
       maxResults: number[];
       topics: ("general" | "news")[];
       quality: ("default" | "best")[];
-    },
+    }
   ) {
     const searchPromises = queries.map(async (query, index) => {
       const currentTopic =
@@ -148,8 +148,10 @@ class TavilySearchStrategy implements SearchStrategy {
             title: cleanTitle(obj.title || ""),
             content: obj.content as string,
             publishedDate:
-              currentTopic === "news" ? (obj.published_date as string) : undefined,
-          }),
+              currentTopic === "news"
+                ? (obj.published_date as string)
+                : undefined,
+          })
         );
 
         const images = (tavilyData.images || [])
@@ -181,7 +183,9 @@ class TavilySearchStrategy implements SearchStrategy {
 }
 
 class FirecrawlSearchStrategy implements SearchStrategy {
-  constructor(private readonly firecrawl: Awaited<ReturnType<typeof getFirecrawlClient>>) {}
+  constructor(
+    private readonly firecrawl: Awaited<ReturnType<typeof getFirecrawlClient>>
+  ) {}
 
   async search(
     queries: string[],
@@ -189,7 +193,7 @@ class FirecrawlSearchStrategy implements SearchStrategy {
       maxResults: number[];
       topics: ("general" | "news")[];
       quality: ("default" | "best")[];
-    },
+    }
   ) {
     const searchPromises = queries.map(async (query, index) => {
       const currentTopic =
@@ -230,14 +234,14 @@ class FirecrawlSearchStrategy implements SearchStrategy {
           currentTopic === "news"
         ) {
           const newsResults = firecrawlData.news as any[];
-          const processedNewsResults = deduplicateByDomainAndUrl(newsResults).map(
-            (result) => ({
-              url: result.url as string,
-              title: cleanTitle(result.title || ""),
-              content: (result.snippet as string) || "",
-              publishedDate: (result.date as string) || undefined,
-            }),
-          );
+          const processedNewsResults = deduplicateByDomainAndUrl(
+            newsResults
+          ).map((result) => ({
+            url: result.url as string,
+            title: cleanTitle(result.title || ""),
+            content: (result.snippet as string) || "",
+            publishedDate: (result.date as string) || undefined,
+          }));
 
           results = [...processedNewsResults, ...results];
         }
@@ -284,7 +288,7 @@ class ExaSearchStrategy implements SearchStrategy {
       maxResults: number[];
       topics: ("general" | "news")[];
       quality: ("default" | "best")[];
-    },
+    }
   ) {
     const searchPromises = queries.map(async (query, index) => {
       const currentTopic =
@@ -316,7 +320,7 @@ class ExaSearchStrategy implements SearchStrategy {
                 description: cleanTitle(
                   result.title ||
                     (result.text?.substring(0, 100) as string) + "..." ||
-                    "",
+                    ""
                 ),
               });
             }
@@ -324,13 +328,13 @@ class ExaSearchStrategy implements SearchStrategy {
             return {
               url: result.url as string,
               title: cleanTitle(result.title || ""),
-              content: (result.text as string || "").substring(0, 1000),
+              content: ((result.text as string) || "").substring(0, 1000),
               publishedDate:
                 currentTopic === "news" && result.publishedDate
                   ? (result.publishedDate as string)
                   : undefined,
             };
-          },
+          }
         );
 
         const images = deduplicateByDomainAndUrl(collectedImages);
@@ -360,13 +364,20 @@ type Provider = "exa" | "parallel" | "tavily" | "firecrawl";
 
 const getSearchProvider = (): Provider => {
   const raw = process.env.RESEARCH_SEARCH_PROVIDER;
-  if (raw === "exa" || raw === "parallel" || raw === "tavily" || raw === "firecrawl") {
+  if (
+    raw === "exa" ||
+    raw === "parallel" ||
+    raw === "tavily" ||
+    raw === "firecrawl"
+  ) {
     return raw;
   }
   return "firecrawl";
 };
 
-const createSearchStrategy = async (provider: Provider): Promise<SearchStrategy> => {
+const createSearchStrategy = async (
+  provider: Provider
+): Promise<SearchStrategy> => {
   if (provider === "exa") {
     const apiKey = process.env.EXA_API_KEY;
     if (!apiKey) {
@@ -378,7 +389,9 @@ const createSearchStrategy = async (provider: Provider): Promise<SearchStrategy>
   if (provider === "parallel") {
     const apiKey = process.env.PARALLEL_API_KEY;
     if (!apiKey) {
-      throw new Error("PARALLEL_API_KEY is required for Parallel-based search.");
+      throw new Error(
+        "PARALLEL_API_KEY is required for Parallel-based search."
+      );
     }
     const firecrawl = await getFirecrawlClient();
     return new ParallelSearchStrategy(new Parallel({ apiKey }), firecrawl);
@@ -411,18 +424,18 @@ export const webSearchTool = createTool({
         z
           .string()
           .describe(
-            "Array of 3-5 search queries to look up on the web. Minimum 3, maximum 5 where possible."
-          ),
+            "Array of focused search queries to look up on the web. Minimum 3, ideally 3-5; extra queries will be truncated."
+          )
       )
       .min(3)
-      .max(5),
+      .max(10),
     maxResults: z
       .array(
         z
           .number()
           .describe(
             "Maximum number of results per query. Default is 10. Minimum is 8. Maximum is 15."
-          ),
+          )
       )
       .optional(),
     topics: z
@@ -431,7 +444,7 @@ export const webSearchTool = createTool({
           .enum(["general", "news"])
           .describe(
             "Topic type per query. Use 'news' for time-sensitive topics; otherwise 'general'."
-          ),
+          )
       )
       .optional(),
     quality: z
@@ -440,7 +453,7 @@ export const webSearchTool = createTool({
           .enum(["default", "best"])
           .describe(
             "Search effort per query. 'default' is usually enough; 'best' may be slower."
-          ),
+          )
       )
       .optional(),
   }),
@@ -458,22 +471,46 @@ export const webSearchTool = createTool({
     const provider = getSearchProvider();
     const strategy = await createSearchStrategy(provider);
 
-    const normalizedMaxResults = maxResults && maxResults.length > 0
-      ? maxResults
-      : new Array(queries.length).fill(10);
+    const normalizedMaxResults =
+      maxResults && maxResults.length > 0
+        ? maxResults
+        : new Array(queries.length).fill(10);
 
-    const normalizedTopics = topics && topics.length > 0
-      ? topics
-      : new Array(queries.length).fill("general" as const);
+    const normalizedTopics =
+      topics && topics.length > 0
+        ? topics
+        : new Array(queries.length).fill("general" as const);
 
-    const normalizedQuality = quality && quality.length > 0
-      ? quality
-      : new Array(queries.length).fill("default" as const);
+    const normalizedQuality =
+      quality && quality.length > 0
+        ? quality
+        : new Array(queries.length).fill("default" as const);
 
-    return await strategy.search(queries, {
+    const primaryResult = await strategy.search(queries, {
       maxResults: normalizedMaxResults,
       topics: normalizedTopics,
       quality: normalizedQuality,
     });
+
+    const hasAnyResults = primaryResult.searches.some(
+      (search) => search.results.length > 0 || search.images.length > 0
+    );
+
+    if (!hasAnyResults && provider !== "firecrawl") {
+      try {
+        const firecrawlClient = await getFirecrawlClient();
+        const fallbackStrategy = new FirecrawlSearchStrategy(firecrawlClient);
+
+        return await fallbackStrategy.search(queries, {
+          maxResults: normalizedMaxResults,
+          topics: normalizedTopics,
+          quality: normalizedQuality,
+        });
+      } catch (error) {
+        console.error("Firecrawl fallback search error:", error);
+      }
+    }
+
+    return primaryResult;
   },
 });
