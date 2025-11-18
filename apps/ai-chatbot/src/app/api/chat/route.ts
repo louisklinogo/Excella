@@ -2,13 +2,14 @@ import type { ExcelContextSnapshot } from "@excella/core/excel/context-snapshot"
 import { mastra } from "@excella/mastra";
 import { toAISdkFormat } from "@mastra/ai-sdk";
 import { RuntimeContext } from "@mastra/core/runtime-context";
-import type { UIMessage } from "ai";
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { createUIMessageStreamResponse } from "ai";
+
+import { createMastraUIMessageStream } from "@/lib/chat-stream";
 
 export const maxDuration = 30;
 
 type ChatRequestBody = {
-  messages: UIMessage[];
+  messages: import("@/lib/chat-stream").ChatRequestBody["messages"];
   excelSnapshot?: ExcelContextSnapshot | null;
   mode?: "default" | "research";
 };
@@ -52,41 +53,21 @@ export async function POST(request: Request): Promise<Response> {
 
   const stream = await agent.stream(messages, { runtimeContext });
 
-  const uiMessageStream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      const convertedStream = toAISdkFormat(stream, { from: "agent" });
+  const convertedStream = toAISdkFormat(stream, { from: "agent" });
 
-      if (!convertedStream) {
-        return;
-      }
+  if (!convertedStream) {
+    return createUIMessageStreamResponse({
+      stream: createMastraUIMessageStream({
+        // Empty stream; this should rarely happen but keeps types happy.
+        stream: (async function* () {})(),
+        mode,
+      }),
+    });
+  }
 
-      const startTime = Date.now();
-      let partCount = 0;
-      let sawFinish = false;
-
-      for await (const part of convertedStream) {
-        // Temporary debug logging so we can see exactly what Mastra is emitting
-        // eslint-disable-next-line no-console
-        console.log("[mastra-chat] AI SDK part", JSON.stringify(part));
-        writer.write(part);
-
-        partCount += 1;
-        if (part.type === "finish") {
-          sawFinish = true;
-        }
-
-        const elapsedMs = Date.now() - startTime;
-        if (!sawFinish && elapsedMs > 120_000) {
-          // eslint-disable-next-line no-console
-          console.warn("[api/chat] stream guard triggered", {
-            mode: mode ?? "default",
-            elapsedMs,
-            partCount,
-          });
-          break;
-        }
-      }
-    },
+  const uiMessageStream = createMastraUIMessageStream({
+    stream: convertedStream,
+    mode,
   });
 
   return createUIMessageStreamResponse({
