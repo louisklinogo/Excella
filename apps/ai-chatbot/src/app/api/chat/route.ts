@@ -1,122 +1,35 @@
-import { createModel, type ModelFactoryOptions } from "@excella/core";
-import type { ModelProvider } from "@excella/core/model-config";
+import type { UIMessage } from "ai";
 import {
-  createAiTelemetryOptions,
-  seedRequestContext,
-  startTimer,
-} from "@excella/logging";
-import { captureException, startSpan } from "@sentry/nextjs";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+} from "ai";
+import { mastra } from "@excella/mastra";
+import { toAISdkFormat } from "@mastra/ai-sdk";
 
-type ChatRequestExtras = {
-  model?: string;
-  webSearch?: boolean;
-};
+export const maxDuration = 30;
 
 type ChatRequestBody = {
   messages: UIMessage[];
-  body?: ChatRequestExtras;
-  data?: ChatRequestExtras;
 };
 
-const isSupportedProvider = (provider: string): provider is ModelProvider =>
-  provider === "google" || provider === "anthropic" || provider === "openai";
+export async function POST(request: Request): Promise<Response> {
+  const { messages } = (await request.json()) as ChatRequestBody;
+  const agent = mastra.getAgent("chatAgent");
 
-const parseModelSelection = (value?: string): ModelFactoryOptions => {
-  if (!value) {
-    return {};
-  }
+  const stream = await agent.stream(messages);
 
-  const [rawProvider, ...rest] = value.split("/");
-  const modelId = rest.join("/");
+  const uiMessageStream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      for await (const part of toAISdkFormat(stream, { from: "agent" })!) {
+        // Temporary debug logging so we can see exactly what Mastra is emitting
+        // eslint-disable-next-line no-console
+        console.log("[mastra-chat] AI SDK part", JSON.stringify(part));
+        writer.write(part);
+      }
+    },
+  });
 
-  if (!(rawProvider && modelId)) {
-    return {};
-  }
-
-  if (!isSupportedProvider(rawProvider)) {
-    return {};
-  }
-
-  return { provider: rawProvider, modelId } satisfies ModelFactoryOptions;
-};
-
-export function POST(request: Request): Promise<Response> {
-  return seedRequestContext(request, async ({ logger: requestLogger }) => {
-    const url = new URL(request.url);
-
-    // Sentry verification: trigger a test error when explicitly requested.
-    if (url.searchParams.get("sentryTest") === "1") {
-      throw new Error("Sentry test error – manual verification trigger");
-    }
-
-    const { messages, body, data } = (await request.json()) as ChatRequestBody;
-
-    const extras: ChatRequestExtras = body ?? data ?? {};
-    const modelOptions = parseModelSelection(extras.model);
-
-    const timer = startTimer();
-    const provider = modelOptions.provider ?? "unknown";
-    const modelId = modelOptions.modelId ?? "default";
-
-    requestLogger.info("ai.request.start", {
-      provider,
-      model: modelId,
-    });
-
-    try {
-      const telemetry = createAiTelemetryOptions(
-        "ai-chat.chat",
-        {
-          provider,
-          model: modelId,
-          webSearch: extras.webSearch ?? false,
-        },
-        {
-          recordInputs: false,
-          recordOutputs: false,
-        }
-      );
-
-      const result = await startSpan(
-        {
-          op: "ai.request",
-          name: `AI Chat (${provider}/${modelId})`,
-        },
-        (span) => {
-          span?.setAttribute("webSearch", extras.webSearch ?? false);
-          return streamText({
-            model: createModel(modelOptions),
-            messages: convertToModelMessages(messages),
-            experimental_telemetry: telemetry,
-          });
-        }
-      );
-
-      const durationMs = Date.now() - timer.start;
-
-      requestLogger.info("ai.request.done", {
-        provider,
-        model: modelId,
-        durationMs,
-        status: "ok",
-      });
-
-      return result.toUIMessageStreamResponse();
-    } catch (error) {
-      const durationMs = Date.now() - timer.start;
-
-      captureException(error);
-
-      requestLogger.error("ai.request.done", {
-        provider,
-        model: modelId,
-        durationMs,
-        status: "error",
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      throw error;
-    }
+  return createUIMessageStreamResponse({
+    stream: uiMessageStream,
   });
 }

@@ -7,9 +7,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@mastra/core": "^0.22.2"
+    "@mastra/core": "^0.24.1"
   },
   "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
     "lint": "bunx ultracite check packages/mastra",
     "format": "bunx ultracite fix packages/mastra"
   }

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/agents/human-in-the-loop-agent.ts",
+    ".": "./src/agents/index.ts",
     "./human-in-the-loop-agent": "./src/agents/human-in-the-loop-agent.ts",
     "./tools/workflow/ask-for-plan-approval-tool": "./src/tools/workflow/ask-for-plan-approval-tool.ts",
     "./tools/comm/email-tool": "./src/tools/comm/email-tool.ts",
@@ -23,8 +23,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.37",
     "@ai-sdk/google": "^2.0.33",
-    "@mastra/core": "^0.22.2",
-    "@mastra/memory": "^0.15.8",
+    "@mastra/core": "^0.24.1",
+    "@mastra/memory": "^0.15.11",
     "@mendable/firecrawl-js": "^4.4.1",
     "resend": "^6.2.2",
     "zod": "^4.1.12"

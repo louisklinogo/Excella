@@ -65,7 +65,6 @@ import { cn } from "@/lib/utils";
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
-  const [useHitl, setUseHitl] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const [databaseSources, setDatabaseSources] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -81,7 +80,7 @@ const ChatBotDemo = () => {
   >({});
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { messages, sendMessage, status, regenerate, stop } = useChat({
-    api: useHitl ? "/api/hitl-chat" : "/api/chat",
+    api: "/api/chat",
     experimental_throttle: 50,
   });
 
@@ -423,19 +422,6 @@ const ChatBotDemo = () => {
                       <ChevronRightIcon className="size-3" />
                     </span>
                   </div>
-                  <Button
-                    aria-label="Toggle human-in-the-loop mode"
-                    className={cn(
-                      "h-6 rounded-full border-none bg-transparent px-2 text-[11px] shadow-none hover:bg-accent/40",
-                      useHitl && "bg-accent text-accent-foreground"
-                    )}
-                    onClick={() => setUseHitl((previous) => !previous)}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    HITL
-                  </Button>
                 </PromptInputTools>
                 <div className="flex items-center gap-1">
                   <VoiceInputButton
