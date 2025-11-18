@@ -108,6 +108,15 @@ const ChatBotDemo = () => {
     .reverse()
     .find((message) => message.role === "assistant");
 
+  const lastAssistantHasText =
+    lastAssistantMessage?.parts.some(
+      (part) => part.type === "text" && part.text.trim()
+    ) ?? false;
+
+  const isThinking =
+    status === "submitted" ||
+    (status === "streaming" && !lastAssistantHasText);
+
   const handleRegenerateLast = async () => {
     if (!lastAssistantMessage) {
       return;
@@ -279,7 +288,7 @@ const ChatBotDemo = () => {
                 </div>
               );
             })}
-            {status === "submitted" && lastMessage?.role === "user" && (
+            {isThinking && (
               <Message from="assistant">
                 <MessageContent>
                   <Shimmer as="p" className="text-muted-foreground text-sm">

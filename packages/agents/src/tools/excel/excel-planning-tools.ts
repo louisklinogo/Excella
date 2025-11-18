@@ -1,4 +1,4 @@
-import { createModel } from "@excella/core/config/model-factory";
+import { createModel } from "@excella/core";
 import { BasicPlanValidator } from "@excella/core/excel/basic-plan-validator";
 import type { ExcelContextSnapshot } from "@excella/core/excel/context-snapshot";
 import type {

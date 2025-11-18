@@ -14,7 +14,21 @@ type ChatRequestBody = {
 
 export async function POST(request: Request): Promise<Response> {
   const { messages } = (await request.json()) as ChatRequestBody;
-  const agent = mastra.getAgent("chatAgent");
+  const agent = mastra.getAgent("routingAgent");
+  // Start network execution in the background for observability and agent-network semantics.
+  // This does not affect the UI stream but lets Mastra run the routing agent as a network.
+  (async () => {
+    try {
+      const networkStream = await agent.network(messages);
+      for await (const event of networkStream) {
+        // Temporary debug logging; adjust or remove once you wire this into richer UI/telemetry.
+        // eslint-disable-next-line no-console
+        console.log("[mastra-network]", event.type);
+      }
+    } catch {
+      // Swallow network errors so they don't impact the primary chat stream.
+    }
+  })();
 
   const stream = await agent.stream(messages);
 
