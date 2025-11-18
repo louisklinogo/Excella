@@ -1,3 +1,16 @@
+/**
+ * NOTE: Legacy Human-in-the-Loop agent from the original fork.
+ *
+ * This agent is NOT wired into the current Excella app. It is kept as a
+ * reference for designing future Excella agents that need:
+ * - multi-step planning with todos
+ * - explicit human approvals
+ * - tool-heavy workflows (email, retrieval, workflow tools, etc.)
+ *
+ * Do not register or expose this agent in new APIs without a deliberate
+ * design pass.
+ */
+
 import { createModel, type ModelFactoryOptions } from "@excella/core";
 import type { ModelProvider } from "@excella/core/model-config";
 import { Agent } from "@mastra/core/agent";
