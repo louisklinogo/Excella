@@ -5,7 +5,7 @@ import {
   seedRequestContext,
   startTimer,
 } from "@excella/logging";
-import { captureException, startSpan } from "@sentry/nextjs";
+import * as Sentry from "@sentry/nextjs";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 type ChatRequestExtras = {
@@ -78,12 +78,12 @@ export function POST(request: Request): Promise<Response> {
         }
       );
 
-      const result = await startSpan(
+      const result = await Sentry.startSpan(
         {
           op: "ai.request",
           name: `AI Chat (${provider}/${modelId})`,
         },
-        (span) => {
+        async (span) => {
           span?.setAttribute("webSearch", extras.webSearch ?? false);
           return streamText({
             model: createModel(modelOptions),
@@ -106,7 +106,7 @@ export function POST(request: Request): Promise<Response> {
     } catch (error) {
       const durationMs = Date.now() - timer.start;
 
-      captureException(error);
+      Sentry.captureException(error);
 
       requestLogger.error("ai.request.done", {
         provider,

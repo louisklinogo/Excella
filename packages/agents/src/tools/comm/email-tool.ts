@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+// Domain: communication. Send previously approved messages via Resend.
 const hasResendKey = (): boolean => !!process.env.RESEND_API_KEY;
 
 const getResendClient = async () => {

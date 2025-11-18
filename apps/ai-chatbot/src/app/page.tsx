@@ -16,6 +16,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
 import {
   Message,
   MessageAction,
@@ -38,7 +39,6 @@ import {
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
-  PromptInputButton,
   PromptInputFooter,
   PromptInputHeader,
   type PromptInputMessage,
@@ -51,21 +51,21 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import {
   Source,
   Sources,
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 import { VoiceInputButton } from "@/components/ai-elements/voice-input-button";
 import { Button } from "@/components/ui/button";
-import { Loader } from "@/components/ai-elements/loader";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { cn } from "@/lib/utils";
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
+  const [useHitl, setUseHitl] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const [databaseSources, setDatabaseSources] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -81,6 +81,7 @@ const ChatBotDemo = () => {
   >({});
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { messages, sendMessage, status, regenerate, stop } = useChat({
+    api: useHitl ? "/api/hitl-chat" : "/api/chat",
     experimental_throttle: 50,
   });
 
@@ -128,10 +129,7 @@ const ChatBotDemo = () => {
 
       return {
         ...previous,
-        [branchGroupId]: [
-          ...existingBranches,
-          lastAssistantTextPart.text,
-        ],
+        [branchGroupId]: [...existingBranches, lastAssistantTextPart.text],
       };
     });
 
@@ -197,10 +195,7 @@ const ChatBotDemo = () => {
                       <SourcesTrigger count={sourceParts.length} />
                       {sourceParts.map((part, index) => (
                         <SourcesContent key={`${message.id}-source-${index}`}>
-                          <Source
-                            href={part.url}
-                            title={part.url}
-                          />
+                          <Source href={part.url} title={part.url} />
                         </SourcesContent>
                       ))}
                     </Sources>
@@ -394,9 +389,7 @@ const ChatBotDemo = () => {
                   <div
                     className={cn(
                       "inline-flex items-center gap-0.5 rounded-full border px-1 py-0.5 text-[11px]",
-                      sourcesActive
-                        ? "border-accent bg-accent/10"
-                        : "bg-muted"
+                      sourcesActive ? "border-accent bg-accent/10" : "bg-muted"
                     )}
                   >
                     <Button
@@ -418,10 +411,10 @@ const ChatBotDemo = () => {
                         "h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40",
                         databaseSources && "bg-accent text-accent-foreground"
                       )}
+                      onClick={() => setDatabaseSources(!databaseSources)}
                       size="icon-sm"
                       type="button"
                       variant="ghost"
-                      onClick={() => setDatabaseSources(!databaseSources)}
                     >
                       <DatabaseIcon className="size-3" />
                     </Button>
@@ -430,14 +423,27 @@ const ChatBotDemo = () => {
                       <ChevronRightIcon className="size-3" />
                     </span>
                   </div>
+                  <Button
+                    aria-label="Toggle human-in-the-loop mode"
+                    className={cn(
+                      "h-6 rounded-full border-none bg-transparent px-2 text-[11px] shadow-none hover:bg-accent/40",
+                      useHitl && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => setUseHitl((previous) => !previous)}
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    HITL
+                  </Button>
                 </PromptInputTools>
                 <div className="flex items-center gap-1">
                   <VoiceInputButton
                     getCurrentText={() => input}
+                    onAudioStreamChange={setAudioStream}
                     onControlsReady={(controls) => {
                       voiceControlsRef.current = controls;
                     }}
-                    onAudioStreamChange={setAudioStream}
                     onRecordingStateChange={setIsRecording}
                     onTranscriptionChange={setInput}
                     onTranscriptionStatusChange={(status) => {

@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+// Domain: workflow / HITL. Generic planning approval; not domain-specific.
 export const askForPlanApprovalTool = createTool({
   id: "ask-for-plan-approval",
   description:

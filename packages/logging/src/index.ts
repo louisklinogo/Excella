@@ -126,7 +126,7 @@ export {
   validateEvent,
 } from "./events/schemas";
 export {
-  createAiTelemetryOptions,
-  type AiTelemetryOptions,
   type AiTelemetryControls,
+  type AiTelemetryOptions,
+  createAiTelemetryOptions,
 } from "./telemetry";

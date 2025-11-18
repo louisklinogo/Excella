@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+// Domain: communication. Draft emails for later approval and sending.
 const outputSchema = z.object({
   emailHandle: z.string(),
   to: z.string(),

@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+// Domain: workflow. Conversation-local todo tracking and status updates.
 type TodoStatus = "new" | "pending" | "in-progress" | "done";
 
 type Todo = {

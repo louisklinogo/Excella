@@ -1,13 +1,13 @@
-import { Agent } from "@mastra/core/agent";
 import { createModel, type ModelFactoryOptions } from "@excella/core";
 import type { ModelProvider } from "@excella/core/model-config";
+import { Agent } from "@mastra/core/agent";
 
-import { askForPlanApprovalTool } from "../tools/ask-for-plan-approval-tool";
-import { sendEmailTool } from "../tools/email-tool";
-import { firecrawlTool } from "../tools/firecrawl-tool";
-import { proposeEmailTool } from "../tools/propose-email-tool";
-import { requestInputTool } from "../tools/request-input";
-import { updateTodosTool } from "../tools/update-todos-tool";
+import { sendEmailTool } from "../tools/comm/email-tool";
+import { proposeEmailTool } from "../tools/comm/propose-email-tool";
+import { firecrawlTool } from "../tools/retrieval/firecrawl-tool";
+import { askForPlanApprovalTool } from "../tools/workflow/ask-for-plan-approval-tool";
+import { requestInputTool } from "../tools/workflow/request-input";
+import { updateTodosTool } from "../tools/workflow/update-todos-tool";
 
 const getAgentModelOptions = (): ModelFactoryOptions => {
   const provider =

@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+// Domain: retrieval. Crawl websites to extract markdown content.
 const useFirecrawl = (): boolean => !!process.env.FIRECRAWL_API_KEY;
 
 const getFirecrawlClient = async () => {

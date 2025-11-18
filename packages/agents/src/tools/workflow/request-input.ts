@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+// Domain: workflow. Generic structured input request from the user.
 export const requestInputTool = createTool({
   id: "request-input",
   description:

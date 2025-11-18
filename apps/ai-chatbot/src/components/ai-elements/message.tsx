@@ -219,15 +219,13 @@ export const MessageBranchSelector = ({
   className,
   from,
   ...props
-}: MessageBranchSelectorProps) => {
-  return (
-    <ButtonGroup
-      className="[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md"
-      orientation="horizontal"
-      {...props}
-    />
-  );
-};
+}: MessageBranchSelectorProps) => (
+  <ButtonGroup
+    className="[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md"
+    orientation="horizontal"
+    {...props}
+  />
+);
 
 export type MessageBranchPreviousProps = ComponentProps<typeof Button>;
 

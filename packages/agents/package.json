@@ -6,12 +6,15 @@
   "exports": {
     ".": "./src/agents/human-in-the-loop-agent.ts",
     "./human-in-the-loop-agent": "./src/agents/human-in-the-loop-agent.ts",
-    "./tools/ask-for-plan-approval-tool": "./src/tools/ask-for-plan-approval-tool.ts",
-    "./tools/email-tool": "./src/tools/email-tool.ts",
-    "./tools/firecrawl-tool": "./src/tools/firecrawl-tool.ts",
-    "./tools/propose-email-tool": "./src/tools/propose-email-tool.ts",
-    "./tools/request-input": "./src/tools/request-input.ts",
-    "./tools/update-todos-tool": "./src/tools/update-todos-tool.ts"
+    "./tools/workflow/ask-for-plan-approval-tool": "./src/tools/workflow/ask-for-plan-approval-tool.ts",
+    "./tools/comm/email-tool": "./src/tools/comm/email-tool.ts",
+    "./tools/retrieval/firecrawl-tool": "./src/tools/retrieval/firecrawl-tool.ts",
+    "./tools/excel/excel-context-tools": "./src/tools/excel/excel-context-tools.ts",
+    "./tools/excel/excel-planning-tools": "./src/tools/excel/excel-planning-tools.ts",
+    "./tools/excel/excel-actions-tools": "./src/tools/excel/excel-actions-tools.ts",
+    "./tools/comm/propose-email-tool": "./src/tools/comm/propose-email-tool.ts",
+    "./tools/workflow/request-input": "./src/tools/workflow/request-input.ts",
+    "./tools/workflow/update-todos-tool": "./src/tools/workflow/update-todos-tool.ts"
   },
   "scripts": {
     "lint": "bunx ultracite check packages/agents",

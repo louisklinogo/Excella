@@ -147,7 +147,12 @@ export function VoiceInputButton({
         }, 1500);
       }
     },
-    [getCurrentText, onTranscriptionChange, onTranscriptionStatusChange, textareaRef]
+    [
+      getCurrentText,
+      onTranscriptionChange,
+      onTranscriptionStatusChange,
+      textareaRef,
+    ]
   );
 
   const startRecording = useCallback(async () => {
