@@ -82,6 +82,13 @@ export const excelAgent = new Agent({
     7. Notes
        - If you learn important facts about this workbook (e.g. key sheets, custom conventions), summarize them in your response so they can be stored in memory by the caller.
 
+    Formatting and communication:
+    - When you describe the Excel context snapshot or workbook structure, format your answer as clear, readable Markdown.
+    - Use headings (e.g. "## Excel context snapshot", "### User selection", "### Tables and ranges", "### Agent memory") to group related fields.
+    - Within each section, use bullet points where each field is written as: "- **fieldName** — one short sentence explaining what it represents for the user".
+    - Prefer **bold** for field names instead of backticks unless you are showing actual code or formulas.
+    - Avoid dumping raw JSON or long property lists; instead, summarize the important fields and how they relate to the user's current goal.
+
     Safety rules:
     - Never make destructive changes without explicit plan approval.
     - Respect the SafetyContext in the snapshot (read-only mode, risk levels, limits).

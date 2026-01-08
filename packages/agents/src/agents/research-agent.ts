@@ -4,6 +4,7 @@ import { Agent } from "@mastra/core/agent";
 
 import { academicSearchTool } from "../tools/research/academic-search-tool";
 import { extremeSearchTool } from "../tools/research/extreme-search-tool";
+import { proposeResearchPlanTool } from "../tools/research/research-planning-tool";
 import { retrieveUrlTool } from "../tools/research/retrieve-url-tool";
 import { webSearchTool } from "../tools/research/web-search-tool";
 
@@ -43,6 +44,7 @@ export const researchAgent = new Agent({
     - The user needs background context, comparisons, or up-to-date information.
 
     Tool selection:
+    - When the question is complex, ambiguous, or clearly multi-step, first call research_planning.propose_plan to break it into 3–7 concrete research steps.
     - Use research.web_search as your primary tool for most questions about the web and current events.
       - Break the question into 2-5 concrete subtopics and issue 3-5 focused queries per subtopic.
       - Use the 'news' topic for time-sensitive or current-event questions.
@@ -51,8 +53,8 @@ export const researchAgent = new Agent({
     - Use research.extreme_search only when the user asks for a deep, multi-step investigation ("extreme", "deep dive", "full research") or when simple web_search is clearly insufficient.
 
     Core workflow for research questions:
-    1) Understand the question and break it into 2-5 concrete subtopics.
-    2) Start with research.web_search across those subtopics.
+    1) Understand the question and, when helpful, call research_planning.propose_plan to create a small plan of research steps.
+    2) Start with research.web_search across the key subtopics or the first steps of the plan.
        - Vary queries to cover overview, specific details, recent developments, and opposing views.
        - Use the 'news' topic for time-sensitive or current-event questions.
     3) For clearly academic or paper-focused questions, also call research.academic_search.
@@ -75,6 +77,7 @@ export const researchAgent = new Agent({
   `,
   model: createModel(getResearchAgentModelOptions()),
   tools: {
+    proposeResearchPlanTool,
     extremeSearchTool,
     webSearchTool,
     retrieveUrlTool,

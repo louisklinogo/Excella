@@ -1,31 +1,71 @@
 import type { UIMessage } from "ai";
 import { createUIMessageStream } from "ai";
 
-type SourceUrlPart = {
+export type SourceUrlPart = {
   type: "source-url";
   sourceId: string;
   url: string;
+  title?: string;
+  snippet?: string;
+  publishedDate?: string;
+  favicon?: string;
 };
 
 type StreamWriter = {
   write: (chunk: unknown) => void;
 };
 
+type SourceCandidate = {
+  url?: unknown;
+  title?: unknown;
+  content?: unknown;
+  description?: unknown;
+  publishedDate?: unknown;
+  favicon?: unknown;
+};
+
 const writeSourceUrl = (
-  url: unknown,
+  candidate: SourceCandidate,
   writer: StreamWriter,
   seenSourceUrls: Set<string>
 ): void => {
+  const { url, title, content, description, publishedDate, favicon } =
+    candidate;
+
   if (typeof url !== "string" || seenSourceUrls.has(url)) {
     return;
   }
 
   seenSourceUrls.add(url);
+
+  let rawSnippet: string | undefined;
+
+  if (typeof description === "string" && description.trim().length > 0) {
+    rawSnippet = description;
+  } else if (typeof content === "string") {
+    rawSnippet = content;
+  }
+
   const part: SourceUrlPart = {
     type: "source-url",
     sourceId: url,
     url,
+    title:
+      typeof title === "string" && title.trim().length > 0 ? title : undefined,
+    snippet:
+      typeof rawSnippet === "string" && rawSnippet.trim().length > 0
+        ? rawSnippet.slice(0, 300)
+        : undefined,
+    publishedDate:
+      typeof publishedDate === "string" && publishedDate.trim().length > 0
+        ? publishedDate
+        : undefined,
+    favicon:
+      typeof favicon === "string" && favicon.trim().length > 0
+        ? favicon
+        : undefined,
   };
+
   writer.write(part);
 };
 
@@ -50,8 +90,7 @@ const writeSourceUrlsFromSearches = (
     }
 
     for (const result of results) {
-      const url = (result as { url?: unknown }).url;
-      writeSourceUrl(url, writer, seenSourceUrls);
+      writeSourceUrl(result as SourceCandidate, writer, seenSourceUrls);
     }
   }
 };
@@ -72,8 +111,7 @@ const writeSourceUrlsFromResearch = (
   }
 
   for (const source of sources) {
-    const url = (source as { url?: unknown }).url;
-    writeSourceUrl(url, writer, seenSourceUrls);
+    writeSourceUrl(source as SourceCandidate, writer, seenSourceUrls);
   }
 };
 
@@ -87,8 +125,7 @@ const writeSourceUrlsFromResults = (
   }
 
   for (const item of rawResults) {
-    const url = (item as { url?: unknown }).url;
-    writeSourceUrl(url, writer, seenSourceUrls);
+    writeSourceUrl(item as SourceCandidate, writer, seenSourceUrls);
   }
 };
 

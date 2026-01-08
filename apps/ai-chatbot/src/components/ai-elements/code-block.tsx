@@ -102,19 +102,19 @@ export const CodeBlock = ({
     <CodeBlockContext.Provider value={{ code }}>
       <div
         className={cn(
-          "group relative w-full overflow-hidden rounded-md border bg-background text-foreground",
+          "group relative w-full overflow-x-auto border bg-background text-foreground",
           className
         )}
         {...props}
       >
         <div className="relative">
           <div
-            className="overflow-hidden dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+            className="dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-2.5 [&>pre]:text-foreground! [&>pre]:text-xs [&_code]:font-mono [&_code]:text-xs"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
             dangerouslySetInnerHTML={{ __html: html }}
           />
           <div
-            className="hidden overflow-hidden dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+            className="hidden dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-2.5 [&>pre]:text-foreground! [&>pre]:text-xs [&_code]:font-mono [&_code]:text-xs"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
             dangerouslySetInnerHTML={{ __html: darkHtml }}
           />

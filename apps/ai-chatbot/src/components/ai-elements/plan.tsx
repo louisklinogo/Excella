@@ -118,10 +118,14 @@ export const PlanContent = (props: PlanContentProps) => (
   </CollapsibleContent>
 );
 
-export type PlanFooterProps = ComponentProps<"div">;
+export type PlanFooterProps = ComponentProps<typeof CardFooter>;
 
-export const PlanFooter = (props: PlanFooterProps) => (
-  <CardFooter data-slot="plan-footer" {...props} />
+export const PlanFooter = ({ className, ...props }: PlanFooterProps) => (
+  <CardFooter
+    className={cn("flex items-center justify-end gap-2", className)}
+    data-slot="plan-footer"
+    {...props}
+  />
 );
 
 export type PlanTriggerProps = ComponentProps<typeof CollapsibleTrigger>;

@@ -46,9 +46,11 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit max-w-full flex-col gap-2 overflow-hidden text-xs sm:text-[13px]",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
+      "is-user:dark flex max-w-full flex-col gap-2 overflow-hidden text-xs sm:text-[13px]",
+      // Assistant messages: readable column width centered in the conversation
+      "group-[.is-assistant]:w-full group-[.is-assistant]:max-w-[720px] group-[.is-assistant]:self-center group-[.is-assistant]:text-foreground",
+      // User messages: compact bubble that hugs content
+      "group-[.is-user]:ml-auto group-[.is-user]:w-fit group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
       className
     )}
     {...props}
@@ -311,9 +313,21 @@ export const MessageResponse = memo(
     <Streamdown
       className={cn(
         "w-full max-w-full break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        "[&_p]:break-words [&_li]:break-words [&_code]:break-all",
-        "[&_pre]:block [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:text-[11px]",
-        "[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto",
+        // Paragraphs & lists
+        "[&_p]:break-words [&_p+ p]:mt-2",
+        "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-2",
+        "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mt-2",
+        "[&_li]:break-words [&_li+ li]:mt-1",
+        // Headings
+        "[&_h2]:mt-4 [&_h2]:mb-1 [&_h2]:text-sm [&_h2]:font-semibold",
+        "[&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-[13px] [&_h3]:font-medium",
+        // Inline code *outside* code blocks
+        "[&:not(pre)_code]:break-all [&:not(pre)_code]:rounded-[3px] [&:not(pre)_code]:bg-muted/70 [&:not(pre)_code]:px-1 [&:not(pre)_code]:py-0.5 [&:not(pre)_code]:font-mono [&:not(pre)_code]:text-[11px]",
+        // Code blocks
+        "[&_pre]:block [&_pre]:w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:text-[11px]",
+        "[&_pre>code]:block [&_pre>code]:w-full [&_pre>code]:whitespace-pre",
+        // Tables
+        "[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_th]:font-medium",
         className
       )}
       {...props}

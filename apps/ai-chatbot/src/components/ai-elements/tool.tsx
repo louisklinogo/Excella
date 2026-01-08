@@ -24,7 +24,10 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
   <Collapsible
-    className={cn("not-prose mb-4 w-full rounded-md border", className)}
+    className={cn(
+      "not-prose mb-2 w-full rounded-sm border border-border/70 bg-muted/40 text-[11px] sm:text-[12px]",
+      className
+    )}
     {...props}
   />
 );
@@ -44,21 +47,24 @@ const getStatusBadge = (status: ToolUIPart["state"]) => {
     "approval-responded": "Responded",
     "output-available": "Completed",
     "output-error": "Error",
-    "output-denied": "Denied",
+    "output-denied": "Cancelled",
   };
 
   const icons: Record<ToolUIPart["state"], ReactNode> = {
-    "input-streaming": <CircleIcon className="size-4" />,
-    "input-available": <ClockIcon className="size-4 animate-pulse" />,
-    "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
-    "approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
-    "output-available": <CheckCircleIcon className="size-4 text-green-600" />,
-    "output-error": <XCircleIcon className="size-4 text-red-600" />,
-    "output-denied": <XCircleIcon className="size-4 text-orange-600" />,
+    "input-streaming": <CircleIcon className="size-3" />,
+    "input-available": <ClockIcon className="size-3 animate-pulse" />,
+    "approval-requested": <ClockIcon className="size-3 text-yellow-600" />,
+    "approval-responded": <CheckCircleIcon className="size-3 text-blue-600" />,
+    "output-available": <CheckCircleIcon className="size-3 text-green-600" />,
+    "output-error": <XCircleIcon className="size-3 text-red-600" />,
+    "output-denied": <XCircleIcon className="size-3 text-orange-600" />,
   };
 
   return (
-    <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
+    <Badge
+      className="h-5 gap-1 rounded-full px-1.5 text-[10px]"
+      variant="secondary"
+    >
       {icons[status]}
       {labels[status]}
     </Badge>
@@ -74,19 +80,19 @@ export const ToolHeader = ({
 }: ToolHeaderProps) => (
   <CollapsibleTrigger
     className={cn(
-      "flex w-full items-center justify-between gap-4 p-3",
+      "flex w-full items-center justify-between gap-2 px-2.5 py-1.5",
       className
     )}
     {...props}
   >
     <div className="flex items-center gap-2">
-      <WrenchIcon className="size-4 text-muted-foreground" />
-      <span className="font-medium text-sm">
+      <WrenchIcon className="size-3.5 text-muted-foreground" />
+      <span className="font-medium">
         {title ?? type.split("-").slice(1).join("-")}
       </span>
       {getStatusBadge(state)}
     </div>
-    <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+    <ChevronDownIcon className="size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
   </CollapsibleTrigger>
 );
 
@@ -107,11 +113,14 @@ export type ToolInputProps = ComponentProps<"div"> & {
 };
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-2 overflow-hidden p-4", className)} {...props}>
-    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+  <div
+    className={cn("space-y-1 overflow-hidden border-t px-2.5 py-2", className)}
+    {...props}
+  >
+    <h4 className="font-medium text-muted-foreground text-[10px] uppercase tracking-wide">
       Parameters
     </h4>
-    <div className="rounded-md bg-muted/50">
+    <div className="overflow-x-auto bg-muted/60">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -143,13 +152,16 @@ export const ToolOutput = ({
   }
 
   return (
-    <div className={cn("space-y-2 p-4", className)} {...props}>
-      <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+    <div
+      className={cn("space-y-1 border-t px-2.5 py-2", className)}
+      {...props}
+    >
+      <h4 className="font-medium text-muted-foreground text-[10px] uppercase tracking-wide">
         {errorText ? "Error" : "Result"}
       </h4>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
+          "overflow-x-auto text-[11px] [&_table]:w-full",
           errorText
             ? "bg-destructive/10 text-destructive"
             : "bg-muted/50 text-foreground"

@@ -5,6 +5,7 @@ import { Agent } from "@mastra/core/agent";
 import { chatAgent } from "./chat-agent";
 import { excelAgent } from "./excel-agent";
 import { researchAgent } from "./research-agent";
+import { proposeResearchPlanTool } from "../tools/research/research-planning-tool";
 
 const getRoutingAgentModelOptions = (): ModelFactoryOptions => {
   const provider =
@@ -45,6 +46,11 @@ export const routingAgent = new Agent({
     - If the request is general conversation or doesn't require workbook access or external research, answer conversationally.
     - Always keep explanations user-focused; never expose internal implementation details or agent names.
 
+    Research planning:
+    - For complex, multi-part research or architecture questions (including when research mode is enabled), you MUST first call research_planning.propose_plan to create a concise research plan before answering.
+    - Once you have a research plan, you may call researchAgent or other tools to execute the steps, then synthesize a final answer for the user.
+    - Always surface the plan clearly to the user before or alongside your answer so they can see the steps you intend to take.
+
     Safety:
     - Never describe yourself as a "routing agent".
     - Never directly mutate the workbook in ways that bypass your Excel planning and approval workflow.
@@ -54,5 +60,8 @@ export const routingAgent = new Agent({
     chatAgent,
     excelAgent,
     researchAgent,
+  },
+  tools: {
+    proposeResearchPlanTool,
   },
 });

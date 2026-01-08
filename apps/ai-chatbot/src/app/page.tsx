@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import type { ToolUIPart } from "ai";
 import {
   ChevronRightIcon,
   CopyIcon,
@@ -9,6 +10,16 @@ import {
   RefreshCcwIcon,
   SquareIcon,
 } from "lucide-react";
+import {
+  Plan,
+  PlanAction,
+  PlanContent,
+  PlanDescription,
+  PlanFooter,
+  PlanHeader,
+  PlanTitle,
+  PlanTrigger,
+} from "@/components/ai-elements/plan";
 import { useRef, useState } from "react";
 
 import {
@@ -30,6 +41,7 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
+import { MessageSourcesSheet } from "@/components/ai-elements/message-sources";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -53,29 +65,44 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from "@/components/ai-elements/sources";
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from "@/components/ai-elements/tool";
 import { VoiceInputButton } from "@/components/ai-elements/voice-input-button";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
+import { WebSearchSources } from "@/components/ai-elements/web-search-sources";
+import type { SourceUrlPart } from "@/lib/chat-stream";
 import { tryGetExcelContextSnapshot } from "@/lib/excel/context-environment";
 import { cn } from "@/lib/utils";
+import {
+  getPlanFromToolPart,
+  isToolUIPart,
+  type PlanToolEntry,
+} from "@/lib/hooks/plan-types";
+import { usePlanExecution } from "@/lib/hooks/use-plan-execution";
+import { useVoiceInput } from "@/lib/hooks/use-voice-input";
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
   const [webSearch, setWebSearch] = useState(false);
   const [databaseSources, setDatabaseSources] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const voiceControlsRef = useRef<{
-    start: () => void;
-    confirm: () => void;
-    cancel: () => void;
-  } | null>(null);
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [cancelledMessageId, setCancelledMessageId] = useState<string | null>(
+    null
+  );
+  const {
+    voiceControlsRef,
+    audioStream,
+    setAudioStream,
+    isRecording,
+    setIsRecording,
+    isTranscribing,
+    setIsTranscribing,
+    isVoiceActive,
+  } = useVoiceInput();
   const [messageBranches, setMessageBranches] = useState<
     Record<string, string[]>
   >({});
@@ -85,7 +112,8 @@ const ChatBotDemo = () => {
     experimental_throttle: 50,
   });
 
-  const isVoiceActive = isRecording || isTranscribing;
+  const { executingPlanMessageId, localPlanTools, executePlan } =
+    usePlanExecution();
   const sourcesActive = webSearch || databaseSources;
 
   const getBranchGroupId = (messageId: string) => {
@@ -116,6 +144,13 @@ const ChatBotDemo = () => {
   const isThinking =
     status === "submitted" || (status === "streaming" && !lastAssistantHasText);
 
+  const handleStop = () => {
+    if (lastAssistantMessage) {
+      setCancelledMessageId(lastAssistantMessage.id);
+    }
+    stop();
+  };
+
   const handleRegenerateLast = async () => {
     if (!lastAssistantMessage) {
       return;
@@ -140,6 +175,8 @@ const ChatBotDemo = () => {
       };
     });
 
+    setCancelledMessageId(null);
+
     await regenerate();
   };
 
@@ -157,6 +194,8 @@ const ChatBotDemo = () => {
     });
 
     const mode: "default" | "research" = webSearch ? "research" : "default";
+
+    setCancelledMessageId(null);
 
     sendMessage(
       {
@@ -177,7 +216,7 @@ const ChatBotDemo = () => {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden px-1 py-2 text-[12px] sm:px-2 sm:text-[13px] lg:mx-auto lg:max-w-4xl lg:px-4 lg:py-6 lg:text-[15px]">
-      <div className="flex flex-1 min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <Conversation className="min-h-0">
           <ConversationContent>
             {messages.map((message, index) => {
@@ -199,6 +238,52 @@ const ChatBotDemo = () => {
                 (part) => part.type === "source-url"
               );
 
+              const serverToolUIParts = message.parts.filter(isToolUIPart);
+
+              const localToolsForMessage = localPlanTools[message.id] ?? [];
+
+              const rawToolUIParts = [
+                ...serverToolUIParts,
+                ...localToolsForMessage,
+              ];
+
+              const isCancelled =
+                cancelledMessageId !== null &&
+                cancelledMessageId === message.id;
+
+              const toolUIParts = rawToolUIParts.map((part) => {
+                if (
+                  isCancelled &&
+                  (part.state === "input-streaming" ||
+                    part.state === "input-available")
+                ) {
+                  return {
+                    ...part,
+                    state: "output-denied",
+                    errorText: part.errorText ?? "Cancelled",
+                  } as ToolUIPart;
+                }
+
+                return part;
+              });
+
+              const planToolEntry = toolUIParts.reduce<PlanToolEntry | null>(
+                (current, part) => {
+                  if (current) {
+                    return current;
+                  }
+
+                  const output = getPlanFromToolPart(part);
+
+                  if (!output) {
+                    return current;
+                  }
+
+                  return output;
+                },
+                null
+              );
+
               const existingBranches = messageBranches[branchGroupId] ?? [];
               const branches = textPart
                 ? [...existingBranches, textPart.text]
@@ -206,26 +291,147 @@ const ChatBotDemo = () => {
 
               return (
                 <div key={`${message.id}-${index}`}>
-                  {isAssistant && sourceParts.length > 0 && (
-                    <Sources>
-                      <SourcesTrigger count={sourceParts.length} />
-                      {sourceParts.map((part, index) => (
-                        <SourcesContent key={`${message.id}-source-${index}`}>
-                          <Source href={part.url} title={part.url} />
-                        </SourcesContent>
-                      ))}
-                    </Sources>
+                  {isAssistant && planToolEntry && (
+                    <Plan
+                      className="mb-3"
+                      defaultOpen
+                      isStreaming={
+                        ![
+                          "output-available",
+                          "output-error",
+                          "output-denied",
+                        ].includes(planToolEntry.part.state)
+                      }
+                    >
+                      <PlanHeader>
+                        <div className="flex w-full items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <PlanTitle>
+                              {planToolEntry.kind === "excel"
+                                ? "Proposed Excel plan"
+                                : "Proposed research plan"}
+                            </PlanTitle>
+                            <PlanDescription>
+                              {planToolEntry.output.summary ??
+                                (planToolEntry.kind === "excel"
+                                  ? "Review this plan before applying changes to your workbook."
+                                  : planToolEntry.output.question ??
+                                    "Review this research plan before executing the steps.")}
+                            </PlanDescription>
+                          </div>
+                          <PlanTrigger />
+                        </div>
+                      </PlanHeader>
+                      <PlanContent>
+                        {planToolEntry.kind === "excel" ? (
+                          <ol className="mt-1 list-decimal space-y-1 pl-5 text-[11px] sm:text-[12px]">
+                            {planToolEntry.output.plan.steps.map(
+                              (step, stepIndex) => (
+                                <li key={step.id ?? stepIndex}>
+                                  <div className="font-medium">
+                                    {step.description}
+                                  </div>
+                                  <div className="text-muted-foreground text-[10px]">
+                                    {step.kind} • {step.targetWorksheet} {" "}
+                                    {step.targetRange}
+                                  </div>
+                                </li>
+                              )
+                            )}
+                          </ol>
+                        ) : (
+                          <ol className="mt-1 list-decimal space-y-1 pl-5 text-[11px] sm:text-[12px]">
+                            {planToolEntry.output.steps.map(
+                              (step, stepIndex) => (
+                                <li key={step.id ?? stepIndex}>
+                                  <div className="font-medium">
+                                    {step.description ?? "Research step"}
+                                  </div>
+                                  <div className="text-muted-foreground text-[10px]">
+                                    {step.kind ?? "step"}
+                                    {step.query
+                                      ? ` • ${step.query}`
+                                      : null}
+                                  </div>
+                                  {step.notes && (
+                                    <div className="text-muted-foreground text-[10px]">
+                                      {step.notes}
+                                    </div>
+                                  )}
+                                </li>
+                              )
+                            )}
+                          </ol>
+                        )}
+                      </PlanContent>
+                      <PlanFooter>
+                        <PlanAction>
+                          <Button
+                            disabled={executingPlanMessageId === message.id}
+                            onClick={() =>
+                              planToolEntry &&
+                              executePlan(planToolEntry, message.id)
+                            }
+                            size="xs"
+                            variant="default"
+                          >
+                            {executingPlanMessageId === message.id
+                              ? "Running plan..."
+                              : planToolEntry.kind === "excel"
+                                ? "Preview plan (dry-run)"
+                                : "Run research plan"}
+                          </Button>
+                        </PlanAction>
+                      </PlanFooter>
+                    </Plan>
                   )}
 
-                  {reasoningParts.map((part, index) => (
+                  {isAssistant &&
+                    toolUIParts
+                      .filter(
+                        (toolPart) =>
+                          !planToolEntry || toolPart !== planToolEntry.part
+                      )
+                      .map((toolPart, toolIndex) => (
+                        <Tool
+                          defaultOpen={
+                            toolPart.state === "output-available" ||
+                            toolPart.state === "output-error" ||
+                            toolPart.state === "output-denied"
+                          }
+                          key={`${message.id}-tool-${toolIndex}`}
+                        >
+                          <ToolHeader
+                            state={toolPart.state}
+                            type={toolPart.type}
+                          />
+                          <ToolContent>
+                            {toolPart.input && (
+                              <ToolInput input={toolPart.input} />
+                            )}
+                            <ToolOutput
+                              errorText={toolPart.errorText}
+                              output={toolPart.output}
+                            />
+                          </ToolContent>
+                        </Tool>
+                      ))}
+
+                  {isAssistant && sourceParts.length > 0 && (
+                    <WebSearchSources
+                      sources={sourceParts as SourceUrlPart[]}
+                    />
+                  )}
+
+                  {reasoningParts.map((part, reasoningIndex) => (
                     <Reasoning
                       className="w-full"
                       isStreaming={
                         status === "streaming" &&
-                        index === message.parts.length - 1 &&
+                        reasoningIndex === message.parts.length - 1 &&
                         message.id === messages.at(-1)?.id
                       }
-                      key={`${message.id}-reasoning-${index}`}
+                      key={`${message.id}-reasoning-${reasoningIndex}`}
                     >
                       <ReasoningTrigger />
                       <ReasoningContent>{part.text}</ReasoningContent>
@@ -254,11 +460,16 @@ const ChatBotDemo = () => {
                                   <MessageBranchPage />
                                   <MessageBranchNext />
                                 </MessageBranchSelector>
+                                {sourceParts.length > 0 && (
+                                  <MessageSourcesSheet
+                                    sources={sourceParts as SourceUrlPart[]}
+                                  />
+                                )}
                                 {status === "streaming" ||
                                 status === "submitted" ? (
                                   <MessageAction
                                     label="Stop"
-                                    onClick={() => stop()}
+                                    onClick={handleStop}
                                   >
                                     <SquareIcon className="size-3" />
                                   </MessageAction>
@@ -299,10 +510,7 @@ const ChatBotDemo = () => {
             {isThinking && (
               <Message from="assistant">
                 <MessageContent>
-                  <Shimmer
-                    as="p"
-                    className="text-muted-foreground text-[11px]"
-                  >
+                  <Shimmer as="p" className="text-[11px] text-muted-foreground">
                     Thinking...
                   </Shimmer>
                 </MessageContent>
@@ -357,7 +565,7 @@ const ChatBotDemo = () => {
                       <div className="h-[2px] w-full rounded bg-muted" />
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1">
                     <Button
                       aria-label="Cancel recording"
                       className="h-6 w-6 rounded-full border-none bg-transparent shadow-none hover:bg-accent/40"
@@ -452,6 +660,8 @@ const ChatBotDemo = () => {
                     }}
                     onRecordingStateChange={setIsRecording}
                     onTranscriptionChange={setInput}
+                    size="icon-xs"
+                    textareaRef={textareaRef}
                     onTranscriptionStatusChange={(transcriptionStatus) => {
                       if (transcriptionStatus === "processing") {
                         setIsTranscribing(true);
@@ -464,11 +674,10 @@ const ChatBotDemo = () => {
                         setIsTranscribing(false);
                       }
                     }}
-                    textareaRef={textareaRef}
-                    size="icon-xs"
                   />
                   <PromptInputSubmit
                     disabled={!(input || status)}
+                    onStop={handleStop}
                     status={status}
                   />
                 </div>

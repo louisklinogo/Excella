@@ -1,0 +1,186 @@
+ You’re exactly right that we’ve basically nailed “A” already (inline/above-message sources), and “B” is a
+   separate UX pattern: a compact “10 sources” pill that opens a richer source viewer.
+
+   Let me propose a concrete design for B, end‑to‑end, then you can tell me if you want me to implement it.
+
+   ──────────────────────────────────────────
+
+   1. Stop showing the long text “Sources:” block
+
+   Right now the model is still emitting:
+
+    **Sources:**
+    * Foo: https://foo…
+    * Bar: https://bar…
+
+   We want that gone so the only place sources live is in UI chrome (A + B).
+
+   I’d handle this in two layers:
+
+   1. Agent instructions (soft control)
+      Update researchAgent instructions (in packages/agents/src/agents/research-agent.ts) to include something
+   like:
+
+      > - Do not include a “Sources:” or “References:” section in your answer.
+      > - The UI will show sources separately. Just write the summary and analysis.
+
+   2. Front-end cleanup (hard control)
+      In page.tsx where we render MessageResponse for assistant text, strip a trailing “Sources:” section if it
+   exists. For example:
+
+   •  Detect \n\nSources:\n` (or Sources:\n`) in the assistant text.
+   •  If found, render only the part before that marker.
+   •  The links still exist as source-url parts (from the stream), so nothing is lost.
+
+   This gives you deterministic behavior even if the model occasionally ignores the instructions.
+
+   ──────────────────────────────────────────
+
+   2. “B” – a sources pill + right-side artifact
+
+   We already have:
+
+   •  Backend emitting source-url parts.
+   •  In page.tsx we compute sourceParts per assistant message and render the existing Sources collapsible (your
+       “A”).
+
+   For “B” we can add:
+
+   2.1. Per-message “sources” pill
+
+   For each assistant message that has sourceParts.length > 0:
+
+   •  In the message’s footer (inside MessageActions or MessageToolbar), add a small pill/button:
+
+   tsx
+     <MessageActions className="gap-3">
+       {/* existing Retry / Copy etc. */}
+
+       {sourceParts.length > 0 && (
+         <MessageAction
+           label={`${sourceParts.length} sources`}
+           onClick={() => setActiveSourcesMessageId(message.id)}
+         >
+           {/* tiny stacked favicon-ish icon & count, similar to your screenshot */}
+           <span className="flex items-center gap-1 text-[11px]">
+             <span className="inline-flex -space-x-1">
+               {/* maybe 2–3 colored dots or favicons later */}
+               <span className="h-3 w-3 rounded-full bg-muted" />
+               <span className="h-3 w-3 rounded-full bg-muted" />
+             </span>
+             {sourceParts.length} sources
+           </span>
+         </MessageAction>
+       )}
+     </MessageActions>
+
+   •  State in the page:
+
+   ts
+     const [activeSourcesMessageId, setActiveSourcesMessageId] = useState<string | null>(null);
+
+   2.2. Right-side “sheet” using `Artifact` + `Dialog`
+
+   We already have:
+
+   •  Artifact in ai-elements (card-like container).
+   •  Dialog in components/ui/dialog (Radix-based overlay).
+
+   To get “sheet from right”:
+
+   •  Use Dialog but style its content as a right-aligned panel instead of centered:
+
+   tsx
+     <Dialog open={!!activeSourcesMessageId} onOpenChange={(open) => !open && setActiveSourcesMessageId(null)}>
+       <DialogContent
+         className="fixed inset-y-0 right-0 left-auto top-0 h-full max-w-sm translate-x-0 translate-y-0
+     rounded-none border-l bg-background shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out"
+         showCloseButton={false}
+       >
+         <Artifact className="h-full w-full border-none shadow-none">
+           <ArtifactHeader>
+             <ArtifactTitle>
+               {activeSources.length} sources
+             </ArtifactTitle>
+             <ArtifactActions>
+               <ArtifactClose onClick={() => setActiveSourcesMessageId(null)} />
+             </ArtifactActions>
+           </ArtifactHeader>
+
+           <ArtifactContent className="space-y-2">
+             {activeSources.map((part, idx) => (
+               <div key={idx} className="flex flex-col gap-1">
+                 <a
+                   href={part.url}
+                   target="_blank"
+                   rel="noreferrer"
+                   className="text-sm font-medium underline-offset-2 hover:underline"
+                 >
+                   {part.url}
+                 </a>
+                 {/* later: add favicon, title snippet if we have it */}
+               </div>
+             ))}
+           </ArtifactContent>
+         </Artifact>
+       </DialogContent>
+     </Dialog>
+
+   •  activeSources is computed from messages and activeSourcesMessageId:
+
+   ts
+     const activeSources =
+       messages
+         .find((m) => m.id === activeSourcesMessageId)
+         ?.parts.filter((p) => p.type === "source-url") ?? [];
+
+   This matches your image 2 behavior: click the “10 sources” pill → slide-in panel from the right listing all
+   sources in a dedicated artifact.
+
+   We don’t have to change the rest of the UI; A can stay (the small collapsible above the answer), or we can
+   hide A and rely only on B if you prefer.
+
+   ──────────────────────────────────────────
+
+   3. Summary of changes
+
+   If you want me to implement this, the steps are:
+
+   1. Update researchAgent instructions and add a small front-end post‑processor to strip any trailing
+      “Sources:” block from assistant text.
+   2. Add the “N sources” pill to message actions for assistant messages with source-url parts.
+   3. Add a global Dialog + Artifact “Sources sheet” that:
+     •  Uses activeSourcesMessageId to know which message’s sources to show.
+     •  Slides in from the right on desktop, behaves like a normal dialog on narrow viewports.
+   4. Keep or remove the existing inline Sources block (A) based on your preference.
+
+   Do you want me to go ahead and wire this up (with both A and B active), or would you prefer we drop the
+   inline Sources block and only use the right-hand sheet?
+
+>  okay will using artifact +dialog be the best? cos i can installa sheet component from shadcn
+
+⛬  Using Artifact + Dialog is totally fine and, in your current codebase, is actually the simplest and most
+   consistent way to get the “slide-in from right” behavior you want.
+
+   Shadcn’s Sheet is just a convenience wrapper around Radix primitives (same as your existing Dialog), so
+   unless you’re already using Sheet elsewhere, we can style DialogContent to behave like a right-side sheet and
+    put an Artifact inside it; if you later install Sheet, we can trivially swap the outer wrapper without
+   changing the inner sources UI.
+
+>  oh okay but not that, the "sheet" should still abide within our add-in boundaries. Dont forget we are an
+   addin not a webapp
+
+⛬  Totally—everything we build will stay inside the add‑in iframe; nothing will spill over into the Excel grid.
+
+
+   To make that guaranteed and explicit, instead of a global “full-screen” sheet we can:
+   •  Treat the chat root (<div className="relative flex h-screen ...">) as the layout boundary, and
+   •  Render the sources panel as an absolutely positioned Artifact on top of the messages: e.g. <div 
+      className="absolute inset-y-0 right-0 w-[min(320px,100%)]">…</div> that slides in/out, so its width can
+      never exceed the taskpane’s width.
+
+   We can still reuse the Artifact components for the inner card UI; using shadcn Sheet wouldn’t change the
+   boundary behavior (it’s still just CSS in the iframe), but would add another abstraction. Do you want me to
+   implement this inline “right‑docked Artifact panel” approach next?
+
+>  okay start. but add and commit first; no need to run checks

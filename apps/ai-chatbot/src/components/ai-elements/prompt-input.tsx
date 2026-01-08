@@ -988,6 +988,9 @@ export const PromptInputActionMenuItem = ({
 
 export type PromptInputSubmitProps = ComponentProps<typeof InputGroupButton> & {
   status?: ChatStatus;
+  // Optional cancel handler: when status is streaming/submitted, this
+  // will be called instead of submitting the form.
+  onStop?: () => void;
 };
 
 export const PromptInputSubmit = ({
@@ -996,6 +999,8 @@ export const PromptInputSubmit = ({
   size = "icon-xs",
   status,
   children,
+  onClick,
+  onStop,
   ...props
 }: PromptInputSubmitProps) => {
   let Icon = <CornerDownLeftIcon className="size-3" />;
@@ -1004,16 +1009,29 @@ export const PromptInputSubmit = ({
     Icon = <Loader2Icon className="size-3 animate-spin" />;
   } else if (status === "streaming") {
     Icon = <SquareIcon className="size-3" />;
-  } else if (status === "error") {
-    Icon = <XIcon className="size-3" />;
   }
+
+  const isCancellable = status === "submitted" || status === "streaming";
+
+  const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+    if (isCancellable && onStop) {
+      event.preventDefault();
+      onStop();
+      return;
+    }
+
+    if (onClick) {
+      onClick(event);
+    }
+  };
 
   return (
     <InputGroupButton
-      aria-label="Submit"
+      aria-label={isCancellable ? "Stop" : "Submit"}
       className={cn(className)}
+      onClick={handleClick}
       size={size}
-      type="submit"
+      type={isCancellable ? "button" : "submit"}
       variant={variant}
       {...props}
     >
